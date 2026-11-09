@@ -231,7 +231,7 @@
       </div>
       <div class="status" id="b_status"></div>
     </div>
-    <p class="note" style="text-align:center;margin-top:16px">Versie 2 · kaart © OpenStreetMap-bijdragers</p>
+    <p class="note" style="text-align:center;margin-top:16px">Versie 2.1 · kaart © OpenStreetMap-bijdragers</p>
   </div>
 </div>
 
@@ -404,10 +404,25 @@ function updateBtns(){
 const blobToB64 = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(b); });
 
 let noThinkCfg = LS.get("noThinkCfg")==="1";
-async function gemini(prompt, images=[], timeoutMs=90000){
+const FALLBACK_MODEL = "gemini-flash-lite-latest";
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+/* bij drukte bij Google: 2x opnieuw proberen, daarna het lichtere model */
+async function gemini(prompt, images=[], timeoutMs=90000, onRetry){
+  const waits=[2500,6000];
+  for (let a=0;;a++){
+    try { return await geminiOnce(prompt, images, timeoutMs, a>waits.length ? FALLBACK_MODEL : null); }
+    catch(e){
+      const busy = e.status>=500 || e.status===429 && /overload|unavailable|exhaust/i.test(e.message||"");
+      if (!busy || a>waits.length || getModel()===FALLBACK_MODEL && a>=waits.length) throw e;
+      onRetry?.(a<waits.length ? `Google heeft het druk, ik probeer het opnieuw (${a+2}/3)…` : "Nog steeds druk, ik probeer het lichtere model…");
+      if (a<waits.length) await sleep(waits[a]);
+    }
+  }
+}
+async function geminiOnce(prompt, images, timeoutMs, modelOverride){
   const parts=[{text:prompt}];
   for (const im of images) parts.push({inline_data:{mime_type:im.type||"image/jpeg", data: await blobToB64(im)}});
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}:generateContent?key=${encodeURIComponent(getKey())}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelOverride||getModel())}:generateContent?key=${encodeURIComponent(getKey())}`;
   const mk = (think) => JSON.stringify({contents:[{role:"user",parts}], generationConfig:{responseMimeType:"application/json",temperature:0.3, ...(think?{thinkingConfig:{thinkingLevel:"low"}}:{})}});
   const send = async (body) => {
     const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(), timeoutMs);
@@ -495,7 +510,7 @@ async function recognize(){
   if (busy || !photos.length || !getKey()) return; busy=true;
   status("#status",'<span class="spin"></span>Etiket lezen…');
   try {
-    const r = await gemini(PROMPT_LABEL, photos, 60000);
+    const r = await gemini(PROMPT_LABEL, photos, 60000, m=>status("#status",'<span class="spin"></span>'+m));
     if (r.herkend===false && !r.naam) { status("#status","Ik kon het etiket niet goed lezen. Probeer een scherpere foto, of vul de naam in en tik op 📚.",true); return; }
     fillFrom(r, true);
     status("#status",'✅ Herkend! Controleer de gegevens. <span class="spin"></span>Leerinfo wordt opgehaald… je kunt al opslaan.');

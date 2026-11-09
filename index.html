@@ -3,52 +3,92 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#7b1e3a">
+<meta name="theme-color" content="#5c0d25">
 <title>Mijn Wijnboek</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <style>
   :root{
-    --bg:#f7f2ec; --card:#fffdf9; --ink:#2b1d1f; --muted:#7a6a68; --line:#e6dbd2;
-    --wine:#7b1e3a; --gold:#b8892e; --ok:#3c7a4a; --soft:#f1e6e8;
+    --bg:#f5f1ee; --card:#ffffff; --ink:#1f1416; --muted:#857574; --line:#ece4df;
+    --wine:#8b1538; --wine2:#b8325a; --gold:#e0a526; --ok:#2f7a45; --soft:#f3eaec;
+    --shadow:0 1px 2px rgba(60,20,30,.06),0 6px 18px rgba(60,20,30,.08);
+    --serif:"Fraunces",Georgia,serif; --sans:"Inter",system-ui,-apple-system,Roboto,sans-serif;
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#1b1416; --card:#251b1e; --ink:#f3e9e6; --muted:#b29f9c; --line:#3a2b2f;
-      --wine:#c4506f; --gold:#d8ae5a; --ok:#7cc48c; --soft:#33242a; }
+    :root{ --bg:#141011; --card:#211a1c; --ink:#f4ecea; --muted:#ab9a98; --line:#33292c;
+      --wine:#d1557a; --wine2:#e07a98; --gold:#f0bf4c; --ok:#7cc48c; --soft:#2c2225;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.35); }
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Roboto,sans-serif;font-size:16px;line-height:1.45}
-  h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:0;font-weight:700}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45}
+  h1,h2,h3{font-family:var(--serif);margin:0;font-weight:700;letter-spacing:-.01em}
   button,input,select,textarea{font:inherit;color:inherit}
-  .wrap{max-width:720px;margin:0 auto;padding:16px 16px 110px;position:relative}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 14px}
-  header h1{font-size:1.55rem;color:var(--wine)}
+  .wrap{max-width:720px;margin:0 auto;padding:0 16px 140px;position:relative}
+  /* kop */
+  .hero{background:linear-gradient(160deg,#5c0d25 0%,#8b1538 55%,#b8325a 100%);color:#fff;padding:22px 18px 70px;border-radius:0 0 28px 28px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-40px;top:-30px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%)}
+  .hero .in{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;position:relative;z-index:1}
+  .hero h1{font-size:1.9rem;line-height:1.1}
+  .hero .sub{opacity:.85;font-size:.92rem;margin-top:4px}
+  .hero .icon{background:rgba(255,255,255,.16);color:#fff}
+  .statrow{max-width:720px;margin:-48px auto 0;padding:0 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative;z-index:2}
+  .stat{background:var(--card);border-radius:16px;padding:12px 10px;text-align:center;box-shadow:var(--shadow)}
+  .stat b{display:block;font-family:var(--serif);font-size:1.5rem;color:var(--wine);line-height:1.1}
+  .stat span{font-size:.75rem;color:var(--muted);font-weight:500}
+  .viewtitle{font-size:1.25rem;margin:22px 2px 10px}
   .count{color:var(--muted);font-size:.85rem}
-  .icon{border:0;background:var(--soft);width:40px;height:40px;border-radius:50%;font-size:1.15rem;cursor:pointer;flex:none}
-  .tabs{display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
-  .tabs button{flex:1;border:0;background:none;padding:10px 6px;border-radius:10px;font-weight:600;color:var(--muted);cursor:pointer;font-size:.95rem}
-  .tabs button.on{background:var(--wine);color:#fff}
-  .search{margin:12px 0}
-  input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card)}
+  .icon{border:0;background:var(--soft);width:42px;height:42px;border-radius:50%;font-size:1.15rem;cursor:pointer;flex:none}
+  .search{margin:16px 0 12px;position:relative}
+  .search input{padding-left:40px;border:0;box-shadow:var(--shadow);border-radius:14px;height:46px}
+  .search::before{content:"🔍";position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:.9rem;opacity:.6}
+  input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+  input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--wine) 45%,transparent);outline-offset:1px}
   textarea{min-height:80px;resize:vertical}
-  label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin:12px 0 5px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-  .wine{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left;padding:0}
-  .wine .ph{aspect-ratio:3/4;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:2.4rem;overflow:hidden;width:100%;position:relative}
+  label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.04em}
+  /* wijnkaarten */
+  .list{display:flex;flex-direction:column;gap:12px}
+  .wine{background:var(--card);border:0;border-radius:18px;box-shadow:var(--shadow);cursor:pointer;display:flex;gap:14px;text-align:left;padding:12px;position:relative;overflow:hidden;transition:transform .15s}
+  .wine:active{transform:scale(.98)}
+  .wine::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--tc,var(--wine))}
+  .wine .ph{width:84px;height:112px;flex:none;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:2.2rem;overflow:hidden;position:relative}
   .wine .ph img{width:100%;height:100%;object-fit:cover}
-  .wine .ar{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.45);border-radius:999px;padding:2px 7px;font-size:.85rem}
-  .wine .t{padding:10px 11px 12px}
-  .wine .n{font-weight:600;font-size:.95rem;line-height:1.25}
-  .wine .s{color:var(--muted);font-size:.8rem;margin-top:3px}
+  .wine .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:2px}
+  .wine .n{font-family:var(--serif);font-weight:700;font-size:1.08rem;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .wine .pr{color:var(--muted);font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wine .s{font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wine .bottom{margin-top:auto;display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .wine .ar{font-size:.95rem;letter-spacing:1px}
+  .score{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:.95rem}
+  .score i{font-style:normal;color:var(--gold)}
+  .tag{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted);align-self:flex-start}
   .stars{color:var(--gold);font-size:.85rem;letter-spacing:1px}
-  .empty{text-align:center;color:var(--muted);padding:50px 20px}
-  .empty .big{font-size:3rem}
-  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--wine);color:#fff;border:0;border-radius:999px;padding:15px 26px;font-weight:600;font-size:1rem;box-shadow:0 8px 24px rgba(123,30,58,.35);cursor:pointer;z-index:5}
-  .btn{border:0;border-radius:11px;padding:12px 16px;font-weight:600;cursor:pointer;background:var(--soft);color:var(--ink);text-align:center}
-  .btn.p{background:var(--wine);color:#fff}
+  .empty{text-align:center;color:var(--muted);padding:40px 20px}
+  .empty .big{font-size:3.2rem}
+  /* onderbalk */
+  .bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:1500;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 6px calc(8px + env(safe-area-inset-bottom))}
+  .bottomnav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.7rem;font-weight:600;color:var(--muted);padding:6px 0;cursor:pointer;border-radius:12px}
+  .bottomnav button .ic{font-size:1.35rem;line-height:1;filter:grayscale(1);opacity:.7;transition:all .15s}
+  .bottomnav button.on{color:var(--wine)}
+  .bottomnav button.on .ic{filter:none;opacity:1;transform:translateY(-1px) scale(1.08)}
+  .fab{position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom));background:linear-gradient(135deg,var(--wine),var(--wine2));color:#fff;border:0;border-radius:999px;padding:15px 22px;font-weight:700;font-size:1rem;box-shadow:0 10px 26px rgba(139,21,56,.4);cursor:pointer;z-index:1500}
+  /* statistieken */
+  .bar{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:.9rem}
+  .bar .l{width:120px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .b{flex:1;height:10px;background:var(--soft);border-radius:99px;overflow:hidden}
+  .bar .b div{height:100%;background:linear-gradient(90deg,var(--wine),var(--wine2));border-radius:99px}
+  .bar .v{width:26px;text-align:right;font-weight:600;color:var(--muted)}
+  .grapes{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .grape{padding:6px 11px;border-radius:999px;font-size:.84rem;font-weight:500;background:var(--soft);color:var(--muted)}
+  .grape.done{background:color-mix(in srgb,var(--ok) 16%,var(--card));color:var(--ok);font-weight:600}
+  .progress{height:12px;background:var(--soft);border-radius:99px;overflow:hidden;margin:8px 0 4px}
+  .progress div{height:100%;background:linear-gradient(90deg,var(--ok),#5fb37a);border-radius:99px}
+  .btn{border:0;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer;background:var(--soft);color:var(--ink);text-align:center}
+  .btn.p{background:linear-gradient(135deg,var(--wine),var(--wine2));color:#fff;box-shadow:0 4px 12px rgba(139,21,56,.25)}
   .btn.ghost{background:none;border:1px solid var(--line)}
   .btn.danger{background:none;color:#c0392b;border:1px solid #e3b4b0}
   .btn:disabled{opacity:.55;cursor:default}
@@ -56,9 +96,9 @@
   .row > *{flex:1}
   .sheet{position:fixed;inset:0;background:var(--bg);z-index:10;overflow:auto;display:none}
   .sheet.open{display:block}
-  .sheet .top{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);z-index:3}
+  .sheet .top{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);z-index:3}
   .sheet .top h2{flex:1;font-size:1.15rem}
-  .photo-drop{border:2px dashed var(--line);border-radius:16px;padding:14px;background:var(--card)}
+  .photo-drop{border:2px dashed color-mix(in srgb,var(--wine) 30%,var(--line));border-radius:18px;padding:14px;background:var(--card)}
   .thumbs{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px}
   .thumbs:empty{display:none}
   .thumb{position:relative;flex:none}
@@ -79,17 +119,25 @@
   @keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(8deg)}}
   @media (prefers-reduced-motion: reduce){.deco span{animation:none}}
   #detail{position:relative;min-height:calc(100vh - 64px)}
+  .herobg{position:absolute;left:0;right:0;top:0;height:440px;background-size:cover;background-position:center;filter:blur(28px) saturate(1.3);opacity:.55;transform:scale(1.2);z-index:0;pointer-events:none}
+  .herofade{position:absolute;left:0;right:0;top:0;height:460px;background:linear-gradient(180deg,transparent 40%,var(--bg));z-index:0;pointer-events:none}
+  .titlecard{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:16px;display:flex;gap:12px;align-items:flex-start}
+  .titlecard .ti{flex:1;min-width:0}
+  .bigscore{flex:none;text-align:center;background:color-mix(in srgb,var(--gold) 14%,var(--card));border-radius:14px;padding:8px 10px;min-width:64px}
+  .bigscore b{display:block;font-family:var(--serif);font-size:1.6rem;line-height:1}
+  .bigscore span{color:var(--gold);font-size:.8rem;letter-spacing:1px}
   .gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px;padding:12px 16px 0;position:relative;z-index:1}
-  .gallery img{scroll-snap-align:center;flex:none;max-width:100%;max-height:400px;border-radius:14px;object-fit:contain;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+  .gallery{justify-content:safe center}
+  .gallery img{scroll-snap-align:center;flex:none;max-width:100%;max-height:360px;border-radius:16px;object-fit:contain;box-shadow:0 6px 20px rgba(0,0,0,.18)}
   .gallery.multi img{max-width:85%}
   .detail{padding:16px;position:relative;z-index:1}
-  .detail h2{font-size:1.5rem;color:var(--wine)}
+  .detail h2{font-size:1.45rem;color:var(--ink);line-height:1.2}
   #detail .sec{background:color-mix(in srgb, var(--card) 80%, transparent);backdrop-filter:blur(2px)}
   .meta{color:var(--muted);margin-top:4px}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-  .chip{background:var(--soft);border-radius:999px;padding:4px 11px;font-size:.82rem;font-weight:500}
-  .sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
-  .sec h3{font-size:1rem;margin-bottom:6px}
+  .chip{background:var(--soft);border-radius:999px;padding:5px 11px;font-size:.82rem;font-weight:500}
+  .sec{background:var(--card);border:0;box-shadow:var(--shadow);border-radius:18px;padding:16px;margin-top:14px}
+  .sec h3{font-size:1.05rem;margin-bottom:8px}
   .sec p{margin:6px 0}
   .sec ul,.sec ol{margin:6px 0;padding-left:20px}
   .sec li{margin:4px 0}
@@ -107,7 +155,7 @@
   .modal{z-index:3000}
   .fab{z-index:1500}
   #bigmap,.minimap{position:relative;z-index:0;isolation:isolate}
-  #bigmap{height:calc(100vh - 230px);min-height:320px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:12px;background:var(--soft)}
+  #bigmap{height:calc(100vh - 330px);min-height:320px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin-top:4px;background:var(--soft)}
   .pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
   .pin span{transform:rotate(45deg);font-size:15px;line-height:1;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .leaflet-popup-content{font-family:system-ui,sans-serif}
@@ -124,31 +172,35 @@
 </style>
 </head>
 <body>
+<div class="hero"><div class="in">
+  <div><h1>Mijn Wijnboek</h1><div class="sub" id="heroSub">Proef, leer en onthoud.</div></div>
+  <button class="icon" id="setBtn" aria-label="Instellingen">⚙️</button>
+</div></div>
+<div class="statrow" id="statrow"></div>
 <div class="wrap">
-  <header>
-    <div><h1>🍷 Mijn Wijnboek</h1><div class="count" id="count"></div></div>
-    <button class="icon" id="setBtn" aria-label="Instellingen">⚙️</button>
-  </header>
-  <div class="banner" id="keyBanner">Stel eerst je gratis Gemini-sleutel in om wijnen automatisch te laten herkennen.<br><button class="btn p" id="keyBannerBtn">Instellen</button></div>
-  <div class="tabs">
-    <button data-list="gedronken" class="on">Gedronken</button>
-    <button data-list="proberen">Proberen</button>
-    <button data-list="kaart">🗺️ Kaart</button>
-  </div>
+  <div class="banner" id="keyBanner" style="margin-top:14px">Stel eerst je gratis Gemini-sleutel in om wijnen automatisch te laten herkennen.<br><button class="btn p" id="keyBannerBtn">Instellen</button></div>
   <div id="listView">
     <div class="search"><input id="q" type="search" placeholder="Zoek op naam, land, druif…"></div>
-    <div id="list" class="grid"></div>
+    <div id="list" class="list"></div>
     <div id="empty" class="empty" style="display:none">
       <div class="big">🍇</div>
-      <p>Nog geen wijnen hier.<br>Tik op <b>+ Wijn toevoegen</b> en maak een foto van het etiket.</p>
+      <p id="emptyText"></p>
     </div>
   </div>
   <div id="mapView" style="display:none">
+    <h2 class="viewtitle">Mijn wijnkaart</h2>
     <div id="bigmap"></div>
     <p class="note" id="mapNote"></p>
   </div>
+  <div id="statsView" style="display:none"></div>
 </div>
-<button class="fab" id="addBtn">+ Wijn toevoegen</button>
+<button class="fab" id="addBtn">＋ Wijn</button>
+<nav class="bottomnav">
+  <button data-list="gedronken" class="on"><span class="ic">🍷</span>Gedronken</button>
+  <button data-list="proberen"><span class="ic">⭐</span>Proberen</button>
+  <button data-list="kaart"><span class="ic">🗺️</span>Kaart</button>
+  <button data-list="stats"><span class="ic">📊</span>Mijn leren</button>
+</nav>
 
 <!-- Toevoegen / bewerken -->
 <div class="sheet" id="formSheet">
@@ -237,7 +289,7 @@
       </div>
       <div class="status" id="b_status"></div>
     </div>
-    <p class="note" style="text-align:center;margin-top:16px">Versie 2.2 · kaart © OpenStreetMap-bijdragers</p>
+    <p class="note" style="text-align:center;margin-top:16px">Versie 3 · kaart © OpenStreetMap-bijdragers</p>
   </div>
 </div>
 
@@ -294,34 +346,83 @@ async function reload(){
 })();
 
 /* ---------- lijst & kaart ---------- */
-document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setTab(b.dataset.list));
+document.querySelectorAll(".bottomnav button").forEach(b => b.onclick = () => setTab(b.dataset.list));
 function setTab(l){
-  curList=l; document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.list===l));
-  $("#listView").style.display = l==="kaart" ? "none" : "";
+  curList=l; document.querySelectorAll(".bottomnav button").forEach(x=>x.classList.toggle("on",x.dataset.list===l));
+  $("#listView").style.display = (l==="gedronken"||l==="proberen") ? "" : "none";
   $("#mapView").style.display = l==="kaart" ? "" : "none";
-  l==="kaart" ? drawBigMap() : render();
+  $("#statsView").style.display = l==="stats" ? "" : "none";
+  window.scrollTo({top:0});
+  if (l==="kaart") drawBigMap(); else if (l==="stats") drawStats(); else render();
 }
 $("#q").oninput = render;
 const stars = n => n ? "★".repeat(n)+"☆".repeat(5-n) : "";
 const aromaIcons = (w,n=3) => (w.info?.aromas||[]).filter(a=>AROMA[a]).slice(0,n).map(a=>AROMA[a][0]).join("");
+const FLAG = {frankrijk:"🇫🇷",italië:"🇮🇹",italie:"🇮🇹",spanje:"🇪🇸",portugal:"🇵🇹",duitsland:"🇩🇪",oostenrijk:"🇦🇹",zwitserland:"🇨🇭",griekenland:"🇬🇷",hongarije:"🇭🇺",slovenië:"🇸🇮",kroatië:"🇭🇷",
+  "verenigde staten":"🇺🇸",vs:"🇺🇸",usa:"🇺🇸",amerika:"🇺🇸",canada:"🇨🇦",chili:"🇨🇱",argentinië:"🇦🇷",argentinie:"🇦🇷",uruguay:"🇺🇾",brazilië:"🇧🇷","zuid-afrika":"🇿🇦",australië:"🇦🇺",australie:"🇦🇺",
+  "nieuw-zeeland":"🇳🇿",nederland:"🇳🇱",belgië:"🇧🇪",engeland:"🇬🇧","verenigd koninkrijk":"🇬🇧",libanon:"🇱🇧",israël:"🇮🇱",georgië:"🇬🇪",moldavië:"🇲🇩",roemenië:"🇷🇴",bulgarije:"🇧🇬",turkije:"🇹🇷",marokko:"🇲🇦",china:"🇨🇳",japan:"🇯🇵",luxemburg:"🇱🇺",tsjechië:"🇨🇿"};
+const flag = l => FLAG[(l||"").trim().toLowerCase()] || "";
+const TCOL = { Rood:"#8b1538", Wit:"#e3c04a", "Rosé":"#f08aa6", Mousserend:"#e8cf7c", Zoet:"#d98a1c", Versterkt:"#6b3a1f" };
+
+function drawHeader(){
+  const ged = wines.filter(w=>(w.list||"gedronken")==="gedronken");
+  const landen = new Set(ged.filter(w=>w.land).map(w=>w.land.toLowerCase())).size;
+  const druiven = new Set(ged.flatMap(w=>(w.druiven||[]).map(d=>d.toLowerCase()))).size;
+  $("#statrow").innerHTML = `<div class="stat"><b>${ged.length}</b><span>geproefd</span></div><div class="stat"><b>${landen}</b><span>${landen===1?"land":"landen"}</span></div><div class="stat"><b>${druiven}</b><span>druiven</span></div>`;
+  const h=new Date().getHours();
+  $("#heroSub").textContent = (h<12?"Goedemorgen":h<18?"Goedemiddag":"Goedenavond") + (ged.length ? ` · laatst: ${ged[0].naam||"een wijn"}` : " · tijd voor je eerste fles?");
+}
 
 function render(){
-  if (curList==="kaart") return;
+  drawHeader();
+  if (curList!=="gedronken" && curList!=="proberen") return;
   const q = $("#q").value.trim().toLowerCase();
   const items = wines.filter(w => (w.list||"gedronken")===curList).filter(w => !q ||
     [w.naam,w.producent,w.land,w.regio,w.appellatie,(w.druiven||[]).join(" "),w.type].join(" ").toLowerCase().includes(q));
-  const ged = wines.filter(w=>(w.list||"gedronken")==="gedronken");
-  const landen = new Set(ged.filter(w=>w.land).map(w=>w.land.toLowerCase())).size;
-  $("#count").textContent = ged.length ? `${ged.length} geproefd · ${landen} ${landen===1?"land":"landen"}` : "";
   $("#list").innerHTML = items.map(w => `
-    <button class="wine" data-id="${esc(w.id)}">
-      <div class="ph">${w.photos?.[0]?`<img src="${blobURL(w.photos[0])}" alt="">`:"🍷"}${aromaIcons(w)?`<span class="ar">${aromaIcons(w)}</span>`:""}</div>
-      <div class="t"><div class="n">${esc(w.naam||"Onbekende wijn")}</div>
-      <div class="s">${esc([w.land,w.regio].filter(Boolean).join(" · "))}${w.jaar?" · "+esc(w.jaar):""}</div>
-      ${w.mijn?.score?`<div class="stars">${stars(w.mijn.score)}</div>`:""}</div>
+    <button class="wine" data-id="${esc(w.id)}" style="--tc:${TCOL[w.type]||"var(--wine)"}">
+      <div class="ph">${w.photos?.[0]?`<img src="${blobURL(w.photos[0])}" alt="">`:"🍷"}</div>
+      <div class="t">
+        <div class="n">${esc(w.naam||"Onbekende wijn")}</div>
+        <div class="pr">${esc([w.producent,w.jaar].filter(Boolean).join(" · "))}</div>
+        <div class="s">${flag(w.land)} ${esc([w.regio,w.land].filter(Boolean).join(", "))}</div>
+        ${(w.druiven||[]).length?`<span class="tag">🍇 ${esc(w.druiven.slice(0,2).join(", "))}</span>`:""}
+        <div class="bottom">${w.mijn?.score?`<span class="score"><i>★</i>${w.mijn.score}.0</span>`:`<span class="note">${w.list==="proberen"?"op je lijstje":"nog geen score"}</span>`}<span class="ar">${aromaIcons(w)}</span></div>
+      </div>
     </button>`).join("");
+  $("#emptyText").innerHTML = q ? "Niets gevonden." : curList==="proberen" ? "Nog niets op je lijstje.<br>Zie je een fles die je wilt proberen? Voeg hem toe en kies <b>Wil ik proberen</b>." : "Nog geen wijnen hier.<br>Tik op <b>＋ Wijn</b> en maak een foto van het etiket.";
   $("#empty").style.display = items.length ? "none" : "block";
   document.querySelectorAll(".wine").forEach(el => el.onclick = () => showDetail(wines.find(w=>w.id===el.dataset.id)));
+}
+
+const SDEN3_DRUIVEN = ["chardonnay","gewürztraminer","muscat","riesling","sauvignon blanc","cabernet sauvignon","gamay","grenache","merlot","pinot blanc","pinot noir","sangiovese","syrah/shiraz","tempranillo"];
+const norm = t => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+function drawStats(){
+  drawHeader();
+  const ged = wines.filter(w=>(w.list||"gedronken")==="gedronken");
+  const proefd = new Set(ged.flatMap(w=>(w.druiven||[]).map(norm)));
+  const has = g => g.split("/").some(x => [...proefd].some(p => p.includes(norm(x)) || (norm(x)==="grenache" && p.includes("garnacha")) || (norm(x)==="muscat" && (p.includes("moscat")||p.includes("muskat"))) || (norm(x)==="syrah" && p.includes("shiraz"))));
+  const done = SDEN3_DRUIVEN.filter(has).length;
+  const count = (arr) => { const m={}; arr.forEach(x=>{ if(x) m[x]=(m[x]||0)+1; }); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
+  const bars = (rows) => { const mx=Math.max(1,...rows.map(r=>r[1])); return rows.slice(0,6).map(([k,v])=>`<div class="bar"><span class="l">${k}</span><span class="b"><div style="width:${v/mx*100}%"></div></span><span class="v">${v}</span></div>`).join("") || '<p class="note">Nog geen gegevens.</p>'; };
+  const landen = count(ged.map(w=>w.land)).map(([k,v])=>[`${flag(k)} ${esc(k)}`,v]);
+  const types = count(ged.map(w=>w.type)).map(([k,v])=>[esc(k),v]);
+  const scores = ged.filter(w=>w.mijn?.score); const gem = scores.length ? (scores.reduce((a,w)=>a+w.mijn.score,0)/scores.length).toFixed(1) : "–";
+  const top = [...scores].sort((a,b)=>b.mijn.score-a.mijn.score).slice(0,3);
+  $("#statsView").innerHTML = `
+    <h2 class="viewtitle">Mijn leren</h2>
+    <div class="sec"><h3>🎓 SDEN 3-druiven geproefd</h3>
+      <div class="progress"><div style="width:${done/SDEN3_DRUIVEN.length*100}%"></div></div>
+      <p class="note">${done} van ${SDEN3_DRUIVEN.length} examendruiven geproefd${done===SDEN3_DRUIVEN.length?" — allemaal! 🎉":""}</p>
+      <div class="grapes">${SDEN3_DRUIVEN.map(g=>`<span class="grape ${has(g)?"done":""}">${has(g)?"✓ ":""}${g}</span>`).join("")}</div>
+    </div>
+    <div class="sec"><h3>🌍 Landen</h3>${bars(landen)}</div>
+    <div class="sec"><h3>🍷 Soorten</h3>${bars(types)}</div>
+    <div class="sec"><h3>⭐ Jouw favorieten</h3>
+      <p class="note">Gemiddelde score: <b>${gem}</b></p>
+      ${top.length?top.map(w=>`<div class="bar" style="cursor:pointer" data-id="${esc(w.id)}"><span class="l" style="width:auto;flex:1">${esc(w.naam||"Wijn")}</span><span class="score"><i>★</i>${w.mijn.score}</span></div>`).join(""):'<p class="note">Geef je wijnen sterren om hier je favorieten te zien.</p>'}
+    </div>`;
+  $("#statsView").querySelectorAll("[data-id]").forEach(el=>el.onclick=()=>showDetail(wines.find(w=>w.id===el.dataset.id)));
 }
 
 const hasLoc = w => w.info?.locatie && isFinite(+w.info.locatie.lat) && isFinite(+w.info.locatie.lon) && (+w.info.locatie.lat||+w.info.locatie.lon);
@@ -363,7 +464,7 @@ function openForm(w){
   $("#formTitle").textContent = editing ? "Wijn bewerken" : "Wijn toevoegen";
   F.forEach(k => $("#f_"+k).value = w?.[k] || "");
   $("#f_druiven").value = (w?.druiven||[]).join(", ");
-  $("#f_list").value = w?.list || (curList==="kaart"?"gedronken":curList);
+  $("#f_list").value = w?.list || (curList==="proberen"?"proberen":"gedronken");
   $("#f_datum").value = w?.mijn?.datum ?? new Date().toISOString().slice(0,10);
   $("#f_waar").value = w?.mijn?.waar || "";
   $("#f_prijs").value = w?.mijn?.prijs || "";
@@ -508,7 +609,7 @@ function startInfo(id, fields){
   const p = gemini(promptInfo(fields), [], 60000).then(cleanInfo).then(async info => {
     if (id===draftId && $("#formSheet").classList.contains("open")) learn = info;
     const saved = await dbGet(id);
-    if (saved) { saved.info = info; await dbPut(saved); await reload(); if (current?.id===id) showDetail(saved, true); if (curList==="kaart") drawBigMap(); }
+    if (saved) { saved.info = info; await dbPut(saved); await reload(); if (current?.id===id) showDetail(saved, true); if (curList==="kaart") drawBigMap(); if (curList==="stats") drawStats(); }
     return info;
   }).finally(()=>{ pending.delete(id); });
   pending.set(id, p);
@@ -573,11 +674,15 @@ function showDetail(w, keep){
   const i=w.info, m=w.mijn||{}, busyInfo=pending.has(w.id);
   sheet.style.setProperty("--tint", TINT[w.type]||"transparent");
   $("#detail").innerHTML = `
-    <div class="tintbg"></div>${decoHTML(w)}
+    <div class="tintbg"></div>${w.photos?.[0]?`<div class="herobg" style="background-image:url(${blobURL(w.photos[0])})"></div><div class="herofade"></div>`:""}${decoHTML(w)}
     ${w.photos?.length?`<div class="gallery ${w.photos.length>1?"multi":""}">${w.photos.map(b=>`<img src="${blobURL(b)}" alt="">`).join("")}</div>`:""}
     <div class="detail">
-      <h2>${esc(w.naam||"Onbekende wijn")}</h2>
-      <div class="meta">${esc([w.producent,w.jaar].filter(Boolean).join(" · "))}</div>
+      <div class="titlecard"><div class="ti">
+        <h2>${esc(w.naam||"Onbekende wijn")}</h2>
+        <div class="meta">${esc([w.producent,w.jaar].filter(Boolean).join(" · "))}</div>
+        <div class="meta">${flag(w.land)} ${esc([w.regio,w.land].filter(Boolean).join(", "))}</div></div>
+        ${m.score?`<div class="bigscore"><b>${m.score}.0</b><span>${"★".repeat(m.score)}</span></div>`:""}
+      </div>
       <div class="chips">${[...new Set([w.type,w.land,w.regio,w.appellatie].filter(Boolean))].map(x=>`<span class="chip">${esc(x)}</span>`).join("")}
         ${(w.druiven||[]).map(d=>`<span class="chip">🍇 ${esc(d)}</span>`).join("")}</div>
       <div class="sec"><h3>Jouw ervaring</h3>
@@ -608,6 +713,7 @@ function showDetail(w, keep){
       </div>` : `<div class="sec">${busyInfo?`<p><span class="spin"></span>Leerinfo wordt opgehaald… dit verschijnt vanzelf.</p>`:`<p class="note">Nog geen leerinfo.</p><button class="btn p" id="refreshInfo" ${getKey()?"":"disabled"}>📚 Haal leerinfo op</button>`}</div>`}
       <div class="row" style="margin-top:18px">
         ${w.list==="proberen"?`<button class="btn p" id="moveBtn">✔️ Gedronken!</button>`:""}
+        <button class="btn" id="shareBtn">📤 Delen</button>
         <button class="btn danger" id="delBtn">Verwijderen</button>
       </div>
     </div>`;
@@ -615,6 +721,7 @@ function showDetail(w, keep){
   const rb=$("#revealBtn"); if(rb) rb.onclick=()=>{ $("#learnWrap").classList.remove("hidden-learn"); rb.parentElement.remove(); setTimeout(()=>miniMap?.invalidateSize(),50); };
   const rf=$("#refreshInfo"); if(rf) rf.onclick=()=>{ startInfo(w.id, w).catch(e=>{ const s=document.createElement("div"); s.className="status show err"; s.innerHTML=gemErr(e); rf.after(s); }); showDetail(w,true); };
   $("#delBtn").onclick=()=>$("#confirm").classList.add("open");
+  $("#shareBtn").onclick=()=>shareWine(w);
   const mv=$("#moveBtn"); if(mv) mv.onclick=()=>{ sheet.classList.remove("open"); openForm({...w, list:"gedronken", mijn:{...(w.mijn||{}), datum:new Date().toISOString().slice(0,10)}}); };
   sheet.classList.add("open"); sheet.scrollTop = keep ? y : 0;
   if (miniMap) { miniMap.remove(); miniMap=null; }
@@ -628,6 +735,22 @@ $("#editBtn").onclick=()=>{ if(current){ $("#detailSheet").classList.remove("ope
 $("#cNo").onclick=()=>$("#confirm").classList.remove("open");
 $("#cYes").onclick=async()=>{ $("#confirm").classList.remove("open"); if(!current) return;
   await dbDel(current.id); current=null; $("#detailSheet").classList.remove("open"); await reload(); };
+
+/* ---------- delen ---------- */
+async function shareWine(w){
+  const m=w.mijn||{}, i=w.info||{};
+  const lines=[`🍷 ${w.naam||"Wijn"}${w.jaar?" ("+w.jaar+")":""}`, [w.producent,[w.regio,w.land].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
+    (w.druiven||[]).length?"🍇 "+w.druiven.join(", "):"", m.score?"Mijn score: "+"★".repeat(m.score)+"☆".repeat(5-m.score):"",
+    m.notitie?`"${m.notitie}"`:"", i.eten?.length?"🍽️ Lekker bij: "+i.eten.map(e=>e.gerecht).join(", "):"", "", "Bijgehouden in Mijn Wijnboek: "+location.origin+location.pathname];
+  const text=lines.filter((l,k)=>l||k===lines.length-2).join("\n");
+  try {
+    const file = w.photos?.[0] ? new File([w.photos[0]], "wijn.jpg", {type:w.photos[0].type||"image/jpeg"}) : null;
+    if (file && navigator.canShare?.({files:[file]})) await navigator.share({text, files:[file]});
+    else if (navigator.share) await navigator.share({text});
+    else { await navigator.clipboard.writeText(text); toast("Gekopieerd! Plak het in WhatsApp of een bericht."); }
+  } catch(e){ if (e?.name!=="AbortError") { try{ await navigator.clipboard.writeText(text); toast("Gekopieerd! Plak het in WhatsApp of een bericht."); }catch(_){} } }
+}
+function toast(t){ const d=document.createElement("div"); d.textContent=t; d.style.cssText="position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#1f1416;color:#fff;padding:10px 16px;border-radius:12px;z-index:4000;font-size:.9rem;box-shadow:0 6px 20px rgba(0,0,0,.3)"; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
 
 /* ---------- instellingen ---------- */
 function openSettings(){ $("#s_key").value=getKey(); $("#s_model").value=LS.get("gemModel")||DEFAULT_MODEL; $("#s_deco").checked=LS.get("deco","1")==="1"; status("#s_status",""); status("#b_status",""); $("#setSheet").classList.add("open"); }

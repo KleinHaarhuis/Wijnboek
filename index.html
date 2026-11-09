@@ -8,6 +8,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <style>
   :root{
     --bg:#f7f2ec; --card:#fffdf9; --ink:#2b1d1f; --muted:#7a6a68; --line:#e6dbd2;
@@ -21,14 +23,13 @@
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Roboto,sans-serif;font-size:16px;line-height:1.45}
   h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:0;font-weight:700}
   button,input,select,textarea{font:inherit;color:inherit}
-  .wrap{max-width:720px;margin:0 auto;padding:16px 16px 110px}
+  .wrap{max-width:720px;margin:0 auto;padding:16px 16px 110px;position:relative}
   header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 14px}
   header h1{font-size:1.55rem;color:var(--wine)}
-  header .r{display:flex;align-items:center;gap:8px}
   .count{color:var(--muted);font-size:.85rem}
-  .icon{border:0;background:var(--soft);width:40px;height:40px;border-radius:50%;font-size:1.15rem;cursor:pointer}
+  .icon{border:0;background:var(--soft);width:40px;height:40px;border-radius:50%;font-size:1.15rem;cursor:pointer;flex:none}
   .tabs{display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
-  .tabs button{flex:1;border:0;background:none;padding:10px;border-radius:10px;font-weight:600;color:var(--muted);cursor:pointer}
+  .tabs button{flex:1;border:0;background:none;padding:10px 6px;border-radius:10px;font-weight:600;color:var(--muted);cursor:pointer;font-size:.95rem}
   .tabs button.on{background:var(--wine);color:#fff}
   .search{margin:12px 0}
   input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card)}
@@ -36,8 +37,9 @@
   label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin:12px 0 5px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .wine{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left;padding:0}
-  .wine .ph{aspect-ratio:3/4;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:2.4rem;overflow:hidden;width:100%}
+  .wine .ph{aspect-ratio:3/4;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:2.4rem;overflow:hidden;width:100%;position:relative}
   .wine .ph img{width:100%;height:100%;object-fit:cover}
+  .wine .ar{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.45);border-radius:999px;padding:2px 7px;font-size:.85rem}
   .wine .t{padding:10px 11px 12px}
   .wine .n{font-weight:600;font-size:.95rem;line-height:1.25}
   .wine .s{color:var(--muted);font-size:.8rem;margin-top:3px}
@@ -54,19 +56,35 @@
   .row > *{flex:1}
   .sheet{position:fixed;inset:0;background:var(--bg);z-index:10;overflow:auto;display:none}
   .sheet.open{display:block}
-  .sheet .top{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);z-index:2}
+  .sheet .top{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);z-index:3}
   .sheet .top h2{flex:1;font-size:1.15rem}
-  .photo-drop{border:2px dashed var(--line);border-radius:16px;padding:18px;text-align:center;background:var(--card)}
-  .photo-drop img{max-width:100%;max-height:320px;border-radius:12px;display:block;margin:0 auto 12px}
+  .photo-drop{border:2px dashed var(--line);border-radius:16px;padding:14px;background:var(--card)}
+  .thumbs{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px}
+  .thumbs:empty{display:none}
+  .thumb{position:relative;flex:none}
+  .thumb img{height:150px;border-radius:10px;display:block}
+  .thumb button{position:absolute;top:4px;right:4px;border:0;background:rgba(0,0,0,.6);color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer}
+  .thumb span{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.6);color:#fff;font-size:.72rem;padding:1px 6px;border-radius:6px}
   .pick{position:relative;overflow:hidden}
   .pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
   .note{font-size:.85rem;color:var(--muted)}
   .status{margin-top:10px;font-size:.9rem;padding:10px 12px;border-radius:10px;background:var(--soft);display:none}
   .status.show{display:block}
   .status.err{background:#fbe3e1;color:#8c1d16}
-  .hero{width:100%;max-height:420px;object-fit:contain;background:var(--soft);display:block}
-  .detail{padding:16px}
+  /* detail */
+  #detailSheet{--tint:transparent}
+  .tintbg{position:absolute;left:0;right:0;top:0;height:520px;background:linear-gradient(180deg,var(--tint),transparent);pointer-events:none;z-index:0}
+  .deco{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .deco span{position:absolute;opacity:.22;animation:float 9s ease-in-out infinite;user-select:none}
+  @keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(8deg)}}
+  @media (prefers-reduced-motion: reduce){.deco span{animation:none}}
+  #detail{position:relative;min-height:calc(100vh - 64px)}
+  .gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px;padding:12px 16px 0;position:relative;z-index:1}
+  .gallery img{scroll-snap-align:center;flex:none;max-width:100%;max-height:400px;border-radius:14px;object-fit:contain;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+  .gallery.multi img{max-width:85%}
+  .detail{padding:16px;position:relative;z-index:1}
   .detail h2{font-size:1.5rem;color:var(--wine)}
+  #detail .sec{background:color-mix(in srgb, var(--card) 80%, transparent);backdrop-filter:blur(2px)}
   .meta{color:var(--muted);margin-top:4px}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .chip{background:var(--soft);border-radius:999px;padding:4px 11px;font-size:.82rem;font-weight:500}
@@ -74,6 +92,7 @@
   .sec h3{font-size:1rem;margin-bottom:6px}
   .sec p{margin:6px 0}
   .sec ul,.sec ol{margin:6px 0;padding-left:20px}
+  .sec li{margin:4px 0}
   .quiz{border-top:1px solid var(--line);padding:10px 0}
   .quiz:first-of-type{border-top:0}
   .quiz .a{display:none;margin-top:6px;color:var(--ok);font-weight:500}
@@ -83,6 +102,10 @@
   .rate button{border:0;background:none;font-size:1.8rem;color:var(--line);cursor:pointer;padding:0 2px}
   .rate button.on{color:var(--gold)}
   .hidden-learn .learn{filter:blur(6px);user-select:none;pointer-events:none}
+  .minimap{height:220px;border-radius:12px;margin-top:8px;overflow:hidden;background:var(--soft)}
+  #bigmap{height:calc(100vh - 230px);min-height:320px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:12px;background:var(--soft)}
+  .leaflet-popup-content{font-family:system-ui,sans-serif}
+  .leaflet-popup-content button{border:0;background:#7b1e3a;color:#fff;border-radius:8px;padding:6px 10px;margin-top:6px;cursor:pointer;font-weight:600}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
   .modal.open{display:flex}
   .modal .box{background:var(--card);border-radius:16px;padding:20px;max-width:360px;width:100%}
@@ -98,18 +121,25 @@
 <div class="wrap">
   <header>
     <div><h1>🍷 Mijn Wijnboek</h1><div class="count" id="count"></div></div>
-    <div class="r"><button class="icon" id="setBtn" aria-label="Instellingen">⚙️</button></div>
+    <button class="icon" id="setBtn" aria-label="Instellingen">⚙️</button>
   </header>
   <div class="banner" id="keyBanner">Stel eerst je gratis Gemini-sleutel in om wijnen automatisch te laten herkennen.<br><button class="btn p" id="keyBannerBtn">Instellen</button></div>
   <div class="tabs">
     <button data-list="gedronken" class="on">Gedronken</button>
-    <button data-list="proberen">Wil ik proberen</button>
+    <button data-list="proberen">Proberen</button>
+    <button data-list="kaart">🗺️ Kaart</button>
   </div>
-  <div class="search"><input id="q" type="search" placeholder="Zoek op naam, land, druif…"></div>
-  <div id="list" class="grid"></div>
-  <div id="empty" class="empty" style="display:none">
-    <div class="big">🍇</div>
-    <p>Nog geen wijnen hier.<br>Tik op <b>+ Wijn toevoegen</b> en maak een foto van het etiket.</p>
+  <div id="listView">
+    <div class="search"><input id="q" type="search" placeholder="Zoek op naam, land, druif…"></div>
+    <div id="list" class="grid"></div>
+    <div id="empty" class="empty" style="display:none">
+      <div class="big">🍇</div>
+      <p>Nog geen wijnen hier.<br>Tik op <b>+ Wijn toevoegen</b> en maak een foto van het etiket.</p>
+    </div>
+  </div>
+  <div id="mapView" style="display:none">
+    <div id="bigmap"></div>
+    <p class="note" id="mapNote"></p>
   </div>
 </div>
 <button class="fab" id="addBtn">+ Wijn toevoegen</button>
@@ -119,14 +149,14 @@
   <div class="top"><h2 id="formTitle">Wijn toevoegen</h2><button class="icon" data-close="formSheet">×</button></div>
   <div class="wrap" style="padding-bottom:40px">
     <div class="photo-drop">
-      <img id="preview" alt="" style="display:none">
+      <div class="thumbs" id="thumbs"></div>
       <div class="row">
-        <div class="pick btn p">📷 Foto maken<input type="file" accept="image/*" capture="environment" id="camIn"></div>
-        <div class="pick btn">🖼️ Uit galerij<input type="file" accept="image/*" id="galIn"></div>
+        <div class="pick btn p" id="camBtn">📷 Foto maken<input type="file" accept="image/*" capture="environment" id="camIn"></div>
+        <div class="pick btn">🖼️ Uit galerij<input type="file" accept="image/*" id="galIn" multiple></div>
       </div>
-      <p class="note" style="margin:10px 0 0">Zorg dat het etiket goed leesbaar is.</p>
+      <p class="note" style="margin:10px 0 0" id="photoNote">Begin met het vooretiket. Daarna kun je ook het achteretiket toevoegen.</p>
     </div>
-    <div class="row" style="margin-top:12px"><button class="btn p" id="recogBtn" disabled>✨ Herken wijn van foto</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn p" id="recogBtn" disabled>✨ Herken wijn van foto's</button></div>
     <div class="status" id="status"></div>
 
     <label>Lijst</label>
@@ -159,6 +189,7 @@
     <label>Proefnotitie — kleur, geur, smaak, afdronk</label>
     <textarea id="f_notitie" placeholder="Eerst zelf proeven en opschrijven, daarna pas de info lezen 😉"></textarea>
     <div class="row" style="margin-top:20px"><button class="btn p" id="saveBtn">Opslaan</button></div>
+    <p class="note">Je kunt al opslaan terwijl de leerinfo nog wordt opgehaald; die verschijnt dan vanzelf.</p>
   </div>
 </div>
 
@@ -181,11 +212,15 @@
         <li>Tik op <b>Create API key</b> (API-sleutel maken).</li>
         <li>Kopieer de sleutel en plak hem hieronder.</li>
       </ol>
-      <label>API-sleutel</label><input id="s_key" placeholder="AIza…" autocomplete="off">
+      <label>API-sleutel</label><input id="s_key" placeholder="AQ.… of AIza…" autocomplete="off">
       <label>Model</label><input id="s_model" placeholder="gemini-flash-latest">
       <p class="note">Laat "gemini-flash-latest" staan, tenzij herkennen niet meer werkt. Je sleutel blijft alleen op deze telefoon.</p>
       <div class="row" style="margin-top:10px"><button class="btn p" id="s_save">Opslaan</button><button class="btn ghost" id="s_test">Test</button></div>
       <div class="status" id="s_status"></div>
+    </div>
+    <div class="sec">
+      <h3>Achtergrond</h3>
+      <label style="display:flex;gap:10px;align-items:center;color:var(--ink);font-size:.95rem;font-weight:500"><input type="checkbox" id="s_deco" style="width:auto"> Aroma's als bewegende achtergrond tonen</label>
     </div>
     <div class="sec">
       <h3>Back-up</h3>
@@ -196,6 +231,7 @@
       </div>
       <div class="status" id="b_status"></div>
     </div>
+    <p class="note" style="text-align:center;margin-top:16px">Versie 2 · kaart © OpenStreetMap-bijdragers</p>
   </div>
 </div>
 
@@ -206,6 +242,15 @@
 
 <script>
 const SDEN3 = `SDEN 3 examenwijnen — Wit: Alsace (gewurztraminer/pinot blanc), Australië (chardonnay/blend), Bourgogne (chardonnay), Chili (chardonnay/sauvignon blanc), Duitsland riesling (halb-)trocken, Nieuw-Zeeland (sauvignon blanc), Touraine (sauvignon blanc), Zuid-Afrika (chenin blanc/sauvignon blanc). Rood: Argentinië (malbec), Australië (shiraz/cabernet/blend), Beaujolais (gamay), Bordeaux rood, Bourgogne (pinot noir), California (zinfandel/cabernet), Chili (carmenère/merlot), Spaans crianza/reserva (Rioja), Spaans tinto/joven, Toscane (sangiovese/Chianti), Veneto (Valpolicella), Zuid-Afrika (varietal), Zuidelijke Rhône/Languedoc (GSM). Zoet/versterkt: Port (ruby, tawny, LBV), Sherry (fino, PX), Vin doux naturel (muscat), zoet wit (Bordeaux, Sud-Ouest, Loire), Spätlese/Auslese. Druiven: chardonnay, gewürztraminer, muscat, riesling, sauvignon blanc, cabernet sauvignon, gamay, grenache, merlot, pinot blanc, pinot noir, sangiovese, syrah/shiraz, tempranillo.`;
+
+const AROMA = {
+  citrus:["🍋","🍊"], appel_peer:["🍏","🍐"], steenfruit:["🍑"], tropisch:["🍍","🥭"],
+  rood_fruit:["🍓","🍒"], zwart_fruit:["🫐"], gedroogd_fruit:["🍇"], bloemen:["🌸","🌹","🌼"],
+  kruiden:["🌿","🍃"], specerijen:["🌶️","⭐"], hout_vanille:["🪵"], honing:["🍯"], boter:["🧈"],
+  noten:["🌰","🥜"], chocolade_koffie:["🍫","☕"], aards:["🍄","🍂"], mineraal:["🪨"], rook:["💨"], tabak_leer:["🍂"]
+};
+const TINT = { Rood:"rgba(110,15,40,.35)", Wit:"rgba(230,200,110,.35)", "Rosé":"rgba(240,150,170,.35)",
+  Mousserend:"rgba(240,215,140,.35)", Zoet:"rgba(215,150,50,.35)", Versterkt:"rgba(120,60,30,.35)" };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -219,29 +264,43 @@ function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open("wijnb
 function tx(mode, fn){ return new Promise((res,rej)=>{ const t=idb.transaction("wines",mode); const s=t.objectStore("wines"); const out=fn(s);
   t.oncomplete=()=>res(out?.result ?? out); t.onerror=()=>rej(t.error); }); }
 const dbAll = () => tx("readonly", s=>s.getAll());
+const dbGet = id => tx("readonly", s=>s.get(id));
 const dbPut = w => tx("readwrite", s=>s.put(w));
 const dbDel = id => tx("readwrite", s=>s.delete(id));
 
-let wines=[], curList="gedronken", editing=null, photoBlob=null, learn=null, rating=0, current=null;
-const urls = new Map();
-function photoURL(w){ if(!w.photo) return ""; if(!urls.has(w.id)||urls.get(w.id).b!==w.photo){ const u=URL.createObjectURL(w.photo); urls.set(w.id,{b:w.photo,u}); } return urls.get(w.id).u; }
+let wines=[], curList="gedronken", editing=null, draftId=null, photos=[], learn=null, rating=0, current=null;
+const pending = new Map();   // wijn-id -> lopende leerinfo-aanvraag
+const urlCache = new WeakMap();
+const blobURL = b => { if(!urlCache.has(b)) urlCache.set(b, URL.createObjectURL(b)); return urlCache.get(b); };
+const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
-async function reload(){ wines = (await dbAll()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); render(); }
+async function reload(){
+  wines = (await dbAll()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  for (const w of wines) if (w.photo && !w.photos) { w.photos=[w.photo]; delete w.photo; await dbPut(w); }  // oude versie
+  render();
+}
 
 (async()=>{
-  try { idb = await openDB(); await reload(); } catch(e){ alert("Opslag werkt niet in deze browser."); }
+  try { idb = await openDB(); await reload(); } catch(e){ document.body.insertAdjacentHTML("afterbegin","<p style='padding:16px'>Opslag werkt niet in deze browser.</p>"); }
   try { navigator.storage?.persist?.(); } catch(e){}
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
   checkKey();
 })();
 
-/* ---------- lijst ---------- */
+/* ---------- lijst & kaart ---------- */
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setTab(b.dataset.list));
-function setTab(l){ curList=l; document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.list===l)); render(); }
+function setTab(l){
+  curList=l; document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.list===l));
+  $("#listView").style.display = l==="kaart" ? "none" : "";
+  $("#mapView").style.display = l==="kaart" ? "" : "none";
+  l==="kaart" ? drawBigMap() : render();
+}
 $("#q").oninput = render;
 const stars = n => n ? "★".repeat(n)+"☆".repeat(5-n) : "";
+const aromaIcons = (w,n=3) => (w.info?.aromas||[]).filter(a=>AROMA[a]).slice(0,n).map(a=>AROMA[a][0]).join("");
 
 function render(){
+  if (curList==="kaart") return;
   const q = $("#q").value.trim().toLowerCase();
   const items = wines.filter(w => (w.list||"gedronken")===curList).filter(w => !q ||
     [w.naam,w.producent,w.land,w.regio,w.appellatie,(w.druiven||[]).join(" "),w.type].join(" ").toLowerCase().includes(q));
@@ -250,13 +309,36 @@ function render(){
   $("#count").textContent = ged.length ? `${ged.length} geproefd · ${landen} ${landen===1?"land":"landen"}` : "";
   $("#list").innerHTML = items.map(w => `
     <button class="wine" data-id="${esc(w.id)}">
-      <div class="ph">${w.photo?`<img src="${photoURL(w)}" alt="">`:"🍷"}</div>
+      <div class="ph">${w.photos?.[0]?`<img src="${blobURL(w.photos[0])}" alt="">`:"🍷"}${aromaIcons(w)?`<span class="ar">${aromaIcons(w)}</span>`:""}</div>
       <div class="t"><div class="n">${esc(w.naam||"Onbekende wijn")}</div>
       <div class="s">${esc([w.land,w.regio].filter(Boolean).join(" · "))}${w.jaar?" · "+esc(w.jaar):""}</div>
       ${w.mijn?.score?`<div class="stars">${stars(w.mijn.score)}</div>`:""}</div>
     </button>`).join("");
   $("#empty").style.display = items.length ? "none" : "block";
   document.querySelectorAll(".wine").forEach(el => el.onclick = () => showDetail(wines.find(w=>w.id===el.dataset.id)));
+}
+
+const hasLoc = w => w.info?.locatie && isFinite(+w.info.locatie.lat) && isFinite(+w.info.locatie.lon) && (+w.info.locatie.lat||+w.info.locatie.lon);
+function tiles(map){ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map); }
+const pin = (w) => L.divIcon({className:"", html:`<div style="font-size:26px;line-height:26px;transform:translate(-4px,-22px)">${w.type==="Wit"?"🥂":w.type==="Rosé"?"🌸":"🍷"}</div>`, iconSize:[20,20]});
+let bigMap=null, bigLayer=null;
+function drawBigMap(){
+  if (!window.L) { $("#mapNote").textContent="De kaart kan niet laden zonder internet."; return; }
+  if (!bigMap) { bigMap=L.map("bigmap",{zoomControl:true}).setView([46,8],4); tiles(bigMap); bigLayer=L.layerGroup().addTo(bigMap); }
+  setTimeout(()=>bigMap.invalidateSize(),50);
+  bigLayer.clearLayers();
+  const pts=[];
+  wines.filter(hasLoc).forEach(w=>{
+    const ll=[+w.info.locatie.lat,+w.info.locatie.lon]; pts.push(ll);
+    const m=L.marker(ll,{icon:pin(w)}).addTo(bigLayer);
+    const div=document.createElement("div");
+    div.innerHTML=`<b>${esc(w.naam||"Wijn")}</b><br>${esc(w.info.locatie.plaats||[w.regio,w.land].filter(Boolean).join(", "))}${w.list==="proberen"?"<br><i>wil ik proberen</i>":""}<br><button>Bekijk</button>`;
+    div.querySelector("button").onclick=()=>showDetail(w);
+    m.bindPopup(div);
+  });
+  if (pts.length===1) bigMap.setView(pts[0],7); else if (pts.length) bigMap.fitBounds(pts,{padding:[30,30],maxZoom:8});
+  const zonder = wines.length - pts.length;
+  $("#mapNote").textContent = pts.length ? `${pts.length} ${pts.length===1?"wijn":"wijnen"} op de kaart.${zonder?` ${zonder} zonder locatie: open ze en tik op "Haal leerinfo op".`:""}` : "Nog geen wijnen met een locatie. Nieuwe wijnen krijgen die automatisch.";
 }
 
 /* ---------- sheets ---------- */
@@ -268,38 +350,44 @@ function setRating(n){ rating=n; $("#rate").innerHTML=[1,2,3,4,5].map(i=>`<butto
 
 const F = ["naam","producent","jaar","land","regio","appellatie","type"];
 function openForm(w){
-  editing = w||null; learn = w?.info || null; photoBlob = w?.photo || null;
-  $("#formTitle").textContent = w?.id ? "Wijn bewerken" : "Wijn toevoegen";
+  editing = w?.id ? w : null; draftId = w?.id || newId();
+  learn = w?.info || null; photos = [...(w?.photos||[])];
+  $("#formTitle").textContent = editing ? "Wijn bewerken" : "Wijn toevoegen";
   F.forEach(k => $("#f_"+k).value = w?.[k] || "");
   $("#f_druiven").value = (w?.druiven||[]).join(", ");
-  $("#f_list").value = w?.list || curList;
-  $("#f_datum").value = w?.mijn?.datum || new Date().toISOString().slice(0,10);
+  $("#f_list").value = w?.list || (curList==="kaart"?"gedronken":curList);
+  $("#f_datum").value = w?.mijn?.datum ?? new Date().toISOString().slice(0,10);
   $("#f_waar").value = w?.mijn?.waar || "";
   $("#f_prijs").value = w?.mijn?.prijs || "";
   $("#f_notitie").value = w?.mijn?.notitie || "";
   setRating(w?.mijn?.score||0);
-  const p=$("#preview"); if(photoBlob){p.src=URL.createObjectURL(photoBlob);p.style.display="block";} else {p.removeAttribute("src");p.style.display="none";}
-  status("#status",""); updateBtns();
+  drawThumbs(); status("#status",""); updateBtns();
   $("#formSheet").classList.add("open"); $("#formSheet").scrollTop=0;
 }
 $("#addBtn").onclick = () => openForm(null);
 
-/* ---------- foto ---------- */
-async function shrink(file){
+/* ---------- foto's ---------- */
+const MAXF = 4;
+function drawThumbs(){
+  $("#thumbs").innerHTML = photos.map((b,i)=>`<div class="thumb"><img src="${blobURL(b)}" alt=""><span>${i===0?"voor":"foto "+(i+1)}</span><button type="button" data-i="${i}" aria-label="Verwijder">×</button></div>`).join("");
+  $("#thumbs").querySelectorAll("button").forEach(b=>b.onclick=()=>{ photos.splice(+b.dataset.i,1); drawThumbs(); updateBtns(); });
+  $("#camBtn").firstChild.textContent = photos.length ? "📷 Nog een foto" : "📷 Foto maken";
+  $("#photoNote").textContent = photos.length>=MAXF ? `Maximaal ${MAXF} foto's.` : photos.length ? "Voeg eventueel het achteretiket toe: dat helpt bij het herkennen." : "Begin met het vooretiket. Daarna kun je ook het achteretiket toevoegen.";
+}
+async function shrink(file, max=1280){
   const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
-  const max=1400, r=Math.min(1, max/Math.max(img.width,img.height));
+  const r=Math.min(1, max/Math.max(img.width,img.height));
   const c=document.createElement("canvas"); c.width=Math.round(img.width*r); c.height=Math.round(img.height*r);
   c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-  return await new Promise(res=>c.toBlob(res,"image/jpeg",0.85));
+  return await new Promise(res=>c.toBlob(res,"image/jpeg",0.82));
 }
 async function onPhoto(e){
-  const f=e.target.files?.[0]; e.target.value=""; if(!f) return;
+  const files=[...(e.target.files||[])]; e.target.value=""; if(!files.length) return;
+  const wasEmpty = !photos.length;
   status("#status",'<span class="spin"></span>Foto laden…');
-  try { photoBlob = (await shrink(f)) || f; } catch(err){ photoBlob = f; }
-  status("#status","");
-  const p=$("#preview"); p.src=URL.createObjectURL(photoBlob); p.style.display="block";
-  updateBtns();
-  if (getKey()) recognize();
+  for (const f of files.slice(0, MAXF-photos.length)) { let b; try { b=(await shrink(f))||f; } catch(err){ b=f; } photos.push(b); }
+  status("#status",""); drawThumbs(); updateBtns();
+  if (wasEmpty && getKey() && !$("#f_naam").value.trim()) recognize();
 }
 $("#camIn").onchange=onPhoto; $("#galIn").onchange=onPhoto;
 
@@ -309,45 +397,70 @@ const getModel = () => LS.get("gemModel").trim() || "gemini-flash-latest";
 function checkKey(){ $("#keyBanner").classList.toggle("show", !getKey()); }
 function updateBtns(){
   const k=!!getKey();
-  $("#recogBtn").disabled = !(photoBlob && k);
-  $("#recogBtn").textContent = k ? "✨ Herken wijn van foto" : "✨ Herkennen: stel eerst je sleutel in (⚙️)";
+  $("#recogBtn").disabled = !(photos.length && k);
+  $("#recogBtn").textContent = !k ? "✨ Herkennen: stel eerst je sleutel in (⚙️)" : photos.length>1 ? "✨ Herken wijn van foto's" : "✨ Herken wijn van foto";
   $("#infoBtn").disabled = !k;
 }
 const blobToB64 = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(b); });
 
-async function gemini(prompt, image){
+let noThinkCfg = LS.get("noThinkCfg")==="1";
+async function gemini(prompt, images=[], timeoutMs=90000){
   const parts=[{text:prompt}];
-  if (image) parts.push({inline_data:{mime_type:image.type||"image/jpeg", data: await blobToB64(image)}});
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}:generateContent`, {
-    method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":getKey()},
-    body: JSON.stringify({contents:[{role:"user",parts}], generationConfig:{responseMimeType:"application/json",temperature:0.4}})
-  });
-  const j = await r.json().catch(()=>({}));
+  for (const im of images) parts.push({inline_data:{mime_type:im.type||"image/jpeg", data: await blobToB64(im)}});
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}:generateContent?key=${encodeURIComponent(getKey())}`;
+  const mk = (think) => JSON.stringify({contents:[{role:"user",parts}], generationConfig:{responseMimeType:"application/json",temperature:0.3, ...(think?{thinkingConfig:{thinkingLevel:"low"}}:{})}});
+  const send = async (body) => {
+    const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(), timeoutMs);
+    try {
+      try { return await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},signal:ctl.signal,body}); }
+      catch(e1){ if(e1?.name==="AbortError") throw e1; return await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain"},signal:ctl.signal,body}); }
+    } catch(err){ const e=new Error(err?.name==="AbortError"?"timeout":"network"); e.kind=e.message; throw e; }
+    finally { clearTimeout(t); }
+  };
+  let r = await send(mk(!noThinkCfg));
+  let j = await r.json().catch(()=>({}));
+  if (!r.ok && r.status===400 && !noThinkCfg && /think/i.test(j?.error?.message||"")) {   // model kent deze instelling niet
+    noThinkCfg=true; LS.set("noThinkCfg","1");
+    r = await send(mk(false)); j = await r.json().catch(()=>({}));
+  }
   if (!r.ok) { const e=new Error(j?.error?.message||("HTTP "+r.status)); e.status=r.status; throw e; }
-  const t = j?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+  const t = j?.candidates?.[0]?.content?.parts?.filter(p=>!p.thought).map(p=>p.text||"").join("") || "";
   if (!t) throw new Error("Leeg antwoord");
-  return t;
+  return parseJSON(t);
 }
+function parseJSON(t){ const m=String(t).match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:t); }
 function gemErr(e){
+  if (e.kind==="timeout") return "Google gaf te lang geen antwoord. Probeer het opnieuw.";
+  if (e.kind==="network") return "Kon Google niet bereiken. Gebruik je Brave? Zet dan Shields uit voor deze site (leeuwtje in de adresbalk).";
   if (e.status===400 || e.status===401 || e.status===403) return "Je sleutel lijkt niet te kloppen. Controleer hem bij ⚙️ Instellingen.";
   if (e.status===404) return "Het model bestaat niet (meer). Vul bij ⚙️ een ander model in, bijv. gemini-flash-latest.";
   if (e.status===429) return "Je gratis limiet is even bereikt. Probeer het over een minuut (of morgen) opnieuw.";
-  if (!navigator.onLine) return "Geen internet. Je kunt de wijn wel opslaan en later de info ophalen.";
+  if (e.status>=500) return "Google heeft het even druk. Probeer het zo opnieuw.";
   return "Het lukte niet: "+esc(e.message);
 }
 
-const JSON_SPEC = `Antwoord met ALLEEN geldige JSON in dit formaat:
-{"herkend":true,"naam":"","producent":"","jaar":"","land":"","regio":"","appellatie":"","type":"Rood|Wit|Rosé|Mousserend|Zoet|Versterkt",
-"druiven":["..."],
-"herkomst":"2-3 zinnen over de streek: ligging, klimaat, bodem, waarom deze druif hier goed gedijt",
-"hoeGemaakt":"2-4 zinnen over hoe deze wijn (of deze stijl) gemaakt wordt: oogst, gisting, rijping, hout, enz.",
-"smaakprofiel":"wat je typisch proeft: kleur, geur, zuren, tannine, body",
+const PROMPT_LABEL = `Lees deze foto('s) van een wijnfles (voor- en eventueel achteretiket) en herken de wijn.
+Antwoord met ALLEEN JSON: {"herkend":true,"naam":"","producent":"","jaar":"","land":"","regio":"","appellatie":"","type":"Rood|Wit|Rosé|Mousserend|Zoet|Versterkt","druiven":["..."]}
+Landen en regio's in het Nederlands. Laat leeg ("") wat je niet kunt aflezen of zeker weten; druiven mag je afleiden uit de appellatie als dat gebruikelijk is. "herkend": false als er geen wijnetiket op staat.`;
+
+function promptInfo(w){
+  return `Je bent een wijndocent voor een Nederlandse cursist SDEN 3 (Wijnbrevet). Geef leerinformatie over deze wijn:
+naam: ${w.naam}\nproducent: ${w.producent}\njaar: ${w.jaar}\nland: ${w.land}\nregio: ${w.regio}\nappellatie: ${w.appellatie}\ntype: ${w.type}\ndruiven: ${(w.druiven||[]).join(", ")}
+Antwoord met ALLEEN JSON:
+{"herkomst":"2-3 zinnen: ligging, klimaat, bodem, waarom de druif hier gedijt",
+"hoeGemaakt":"2-4 zinnen: oogst, gisting, rijping, hout enz.",
+"smaakprofiel":"kleur, geur, zuren, tannine, body",
+"aromas":["kies 2-5 uit: ${Object.keys(AROMA).join(", ")}"],
+"eten":[{"gerecht":"concreet gerecht","waarom":"korte uitleg van de combinatie"},{"gerecht":"","waarom":""},{"gerecht":"","waarom":""}],
 "feitjes":["3 korte, leuke en kloppende weetjes"],
-"sden":"Hoe verhoudt deze wijn zich tot de SDEN 3 examenlijst? Noem de categorie, of zeg dat hij er niet op staat en wat de dichtstbijzijnde examenwijn is.",
-"quiz":[{"vraag":"","antwoord":""},{"vraag":"","antwoord":""},{"vraag":"","antwoord":""}]}
-Regels: schrijf in het Nederlands, op het niveau van een cursist SDEN 3 (Wijnbrevet). Verzin geen producentspecifieke details die je niet zeker weet: beschrijf dan wat typisch is voor de stijl/appellatie en zeg dat erbij ("typisch voor…"). Laat velden leeg ("") als je ze niet kunt aflezen of weten. Zet "herkend" op false als er geen wijnetiket te zien is. De quizvragen toetsen begrip (druif, streek, klimaat, wijnmaken), niet alleen wat er op het etiket staat.
+"sden":"Welke categorie van de SDEN 3-lijst is dit, of welke examenwijn lijkt er het meest op?",
+"quiz":[{"vraag":"","antwoord":""},{"vraag":"","antwoord":""},{"vraag":"","antwoord":""}],
+"locatie":{"lat":0,"lon":0,"plaats":"dorp/streek van de producent"}}
+Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken).
 Context: ${SDEN3}`;
-const parseJSON = t => { const m=String(t).match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:t); };
+}
+
+const formFields = () => ({...Object.fromEntries(F.map(k=>[k,$("#f_"+k).value.trim()])), druiven:$("#f_druiven").value.split(",").map(s=>s.trim()).filter(Boolean)});
 
 function fillFrom(r, overwrite){
   const set=(k,v)=>{ if(v && (overwrite || !$("#f_"+k).value.trim())) $("#f_"+k).value=v; };
@@ -355,56 +468,87 @@ function fillFrom(r, overwrite){
   const types=["Rood","Wit","Rosé","Mousserend","Zoet","Versterkt"];
   if (types.includes(r.type) && (overwrite || !$("#f_type").value)) $("#f_type").value=r.type;
   if (r.druiven?.length && (overwrite || !$("#f_druiven").value.trim())) $("#f_druiven").value=r.druiven.join(", ");
-  learn = { herkomst:r.herkomst||"", hoeGemaakt:r.hoeGemaakt||"", smaakprofiel:r.smaakprofiel||"", feitjes:r.feitjes||[], sden:r.sden||"", quiz:(r.quiz||[]).filter(q=>q?.vraag) };
+}
+function cleanInfo(r){
+  return { herkomst:r.herkomst||"", hoeGemaakt:r.hoeGemaakt||"", smaakprofiel:r.smaakprofiel||"",
+    aromas:(r.aromas||[]).filter(a=>AROMA[a]), eten:(r.eten||[]).filter(x=>x?.gerecht),
+    feitjes:r.feitjes||[], sden:r.sden||"", quiz:(r.quiz||[]).filter(q=>q?.vraag),
+    locatie: r.locatie && (+r.locatie.lat||+r.locatie.lon) ? {lat:+r.locatie.lat, lon:+r.locatie.lon, plaats:r.locatie.plaats||""} : null };
+}
+
+/* leerinfo ophalen voor een wijn; werkt ook door als je al hebt opgeslagen */
+function startInfo(id, fields){
+  if (pending.has(id)) return pending.get(id);
+  const p = gemini(promptInfo(fields)).then(cleanInfo).then(async info => {
+    if (id===draftId && $("#formSheet").classList.contains("open")) learn = info;
+    const saved = await dbGet(id);
+    if (saved) { saved.info = info; await dbPut(saved); await reload(); if (current?.id===id) showDetail(saved, true); if (curList==="kaart") drawBigMap(); }
+    return info;
+  }).finally(()=>{ pending.delete(id); });
+  pending.set(id, p);
+  p.catch(()=>{ if (current?.id===id) showDetail(wines.find(w=>w.id===id), true); });
+  return p;
 }
 
 let busy=false;
 async function recognize(){
-  if (busy || !photoBlob || !getKey()) return; busy=true;
-  status("#status",'<span class="spin"></span>Etiket lezen en wijn opzoeken… (± 10–20 sec)');
+  if (busy || !photos.length || !getKey()) return; busy=true;
+  status("#status",'<span class="spin"></span>Etiket lezen…');
   try {
-    const r = parseJSON(await gemini("Je bent een wijndocent. Bekijk deze foto van een wijnetiket, herken de wijn zo precies mogelijk en geef leerinformatie.\n"+JSON_SPEC, photoBlob));
-    if (r.herkend===false && !r.naam) status("#status","Ik kon het etiket niet goed lezen. Probeer een scherpere foto, of vul de naam in en tik op 📚.",true);
-    else { fillFrom(r, true); status("#status","✅ Ingevuld! Controleer de gegevens even. De leerinfo zie je na het opslaan."); }
+    const r = await gemini(PROMPT_LABEL, photos, 60000);
+    if (r.herkend===false && !r.naam) { status("#status","Ik kon het etiket niet goed lezen. Probeer een scherpere foto, of vul de naam in en tik op 📚.",true); return; }
+    fillFrom(r, true);
+    status("#status",'✅ Herkend! Controleer de gegevens. <span class="spin"></span>Leerinfo wordt opgehaald… je kunt al opslaan.');
+    learn = null;
+    startInfo(draftId, formFields())
+      .then(()=>{ if($("#formSheet").classList.contains("open")) status("#status","✅ Herkend en leerinfo is binnen. Je kunt opslaan."); })
+      .catch(e=>{ if($("#formSheet").classList.contains("open")) status("#status","Wijn herkend, maar leerinfo ophalen lukte niet: "+gemErr(e)+" Je kunt het later opnieuw proberen.",true); });
   } catch(e){ status("#status", gemErr(e), true); }
   finally { busy=false; }
 }
 $("#recogBtn").onclick = recognize;
 
-$("#infoBtn").onclick = async () => {
-  if (busy || !getKey()) return;
+$("#infoBtn").onclick = () => {
+  if (!getKey()) return;
   if (!$("#f_naam").value.trim()) { status("#status","Vul eerst de naam van de wijn in.",true); return; }
-  busy=true; status("#status",'<span class="spin"></span>Leerinfo opzoeken…');
-  const bekend = F.map(k=>`${k}: ${$("#f_"+k).value}`).join("\n")+`\ndruiven: ${$("#f_druiven").value}`;
-  try { fillFrom(parseJSON(await gemini("Je bent een wijndocent. Geef leerinformatie over deze wijn:\n"+bekend+"\n"+JSON_SPEC)), false);
-        status("#status","✅ Leerinfo toegevoegd. Lege velden zijn aangevuld."); }
-  catch(e){ status("#status", gemErr(e), true); }
-  finally{ busy=false; }
+  status("#status",'<span class="spin"></span>Leerinfo opzoeken… je kunt al opslaan.');
+  pending.delete(draftId);
+  startInfo(draftId, formFields())
+    .then(()=>{ if($("#formSheet").classList.contains("open")) status("#status","✅ Leerinfo is binnen."); })
+    .catch(e=>status("#status", gemErr(e), true));
 };
 
 /* ---------- opslaan ---------- */
 $("#saveBtn").onclick = async () => {
-  if (!$("#f_naam").value.trim() && !photoBlob) { status("#status","Voeg een foto of naam toe.",true); return; }
+  if (!$("#f_naam").value.trim() && !photos.length) { status("#status","Voeg een foto of naam toe.",true); return; }
   const w = {
-    id: editing?.id || (Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
-    list:$("#f_list").value,
-    ...Object.fromEntries(F.map(k=>[k,$("#f_"+k).value.trim()])),
-    druiven:$("#f_druiven").value.split(",").map(s=>s.trim()).filter(Boolean),
-    photo: photoBlob || null, info: learn || null,
+    id: draftId, list:$("#f_list").value, ...formFields(),
+    photos:[...photos], info: learn || editing?.info || null,
     mijn:{ datum:$("#f_datum").value, waar:$("#f_waar").value.trim(), prijs:$("#f_prijs").value.trim(), score:rating, notitie:$("#f_notitie").value.trim() },
     createdAt: editing?.createdAt || Date.now(), updatedAt: Date.now()
   };
   try { await dbPut(w); } catch(e){ status("#status","Opslaan mislukt: "+esc(e?.message||e),true); return; }
   $("#formSheet").classList.remove("open");
-  await reload(); setTab(w.list); showDetail(w);
+  await reload(); setTab(w.list); showDetail(wines.find(x=>x.id===w.id)||w);
 };
 
 /* ---------- detail ---------- */
-function showDetail(w){
+function decoHTML(w){
+  if (LS.get("deco","1")!=="1") return "";
+  const icons = (w.info?.aromas||[]).flatMap(a=>AROMA[a]||[]);
+  if (!icons.length) return "";
+  let seed=[...w.id].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7); const rnd=()=>((seed=(seed*1103515245+12345)>>>0)%10000)/10000;
+  return `<div class="deco">${Array.from({length:22},(_,i)=>`<span style="left:${(rnd()*92).toFixed(1)}%;top:${(rnd()*96).toFixed(1)}%;font-size:${(22+rnd()*26)|0}px;animation-delay:-${(rnd()*9).toFixed(1)}s">${icons[i%icons.length]}</span>`).join("")}</div>`;
+}
+let miniMap=null;
+function showDetail(w, keep){
   if(!w) return; current=w;
-  const i=w.info, m=w.mijn||{};
+  const sheet=$("#detailSheet"), y=sheet.scrollTop, lw=$("#learnWrap"), wasRevealed = !!(keep && lw && current?.id===w.id && !lw.classList.contains("hidden-learn"));
+  const i=w.info, m=w.mijn||{}, busyInfo=pending.has(w.id);
+  sheet.style.setProperty("--tint", TINT[w.type]||"transparent");
   $("#detail").innerHTML = `
-    ${w.photo?`<img class="hero" src="${photoURL(w)}" alt="">`:""}
+    <div class="tintbg"></div>${decoHTML(w)}
+    ${w.photos?.length?`<div class="gallery ${w.photos.length>1?"multi":""}">${w.photos.map(b=>`<img src="${blobURL(b)}" alt="">`).join("")}</div>`:""}
     <div class="detail">
       <h2>${esc(w.naam||"Onbekende wijn")}</h2>
       <div class="meta">${esc([w.producent,w.jaar].filter(Boolean).join(" · "))}</div>
@@ -420,27 +564,39 @@ function showDetail(w){
         <p class="note">Probeer deze vragen te beantwoorden voordat je de info hieronder leest.</p>
         ${i.quiz.map(q=>`<div class="quiz"><div>${esc(q.vraag)}</div><div class="a">${esc(q.antwoord)}</div><button class="btn">Toon antwoord</button></div>`).join("")}
       </div>`:""}
-      <div id="learnWrap" class="hidden-learn">
-        <div style="text-align:center;margin-top:14px"><button class="btn p" id="revealBtn">Toon de leerinfo</button></div>
+      <div id="learnWrap" class="${wasRevealed?"":"hidden-learn"}">
+        ${wasRevealed?"":`<div style="text-align:center;margin-top:14px"><button class="btn p" id="revealBtn">Toon de leerinfo</button></div>`}
         <div class="learn">
+          ${i.locatie?`<div class="sec"><h3>📍 Waar komt hij vandaan</h3><p class="note">${esc(i.locatie.plaats||[w.regio,w.land].filter(Boolean).join(", "))}</p><div class="minimap" id="minimap"></div></div>`:""}
           ${i.herkomst?`<div class="sec"><h3>🗺️ Herkomst</h3><p>${esc(i.herkomst)}</p></div>`:""}
           ${i.hoeGemaakt?`<div class="sec"><h3>🛢️ Hoe is hij gemaakt</h3><p>${esc(i.hoeGemaakt)}</p></div>`:""}
-          ${i.smaakprofiel?`<div class="sec"><h3>👃 Typisch smaakprofiel</h3><p>${esc(i.smaakprofiel)}</p></div>`:""}
+          ${i.smaakprofiel||i.aromas?.length?`<div class="sec"><h3>👃 Typisch smaakprofiel</h3>
+            ${i.aromas?.length?`<div class="chips" style="margin:0 0 6px">${i.aromas.map(a=>`<span class="chip">${AROMA[a][0]} ${esc(a.replace(/_/g," "))}</span>`).join("")}</div>`:""}
+            <p>${esc(i.smaakprofiel)}</p></div>`:""}
+          ${i.eten?.length?`<div class="sec"><h3>🍽️ Lekker bij</h3><ul>${i.eten.map(e=>`<li><b>${esc(e.gerecht)}</b>${e.waarom?` — ${esc(e.waarom)}`:""}</li>`).join("")}</ul></div>`:""}
           ${i.feitjes?.length?`<div class="sec"><h3>💡 Leuke feitjes</h3><ul>${i.feitjes.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>`:""}
           ${i.sden?`<div class="sec"><h3>🎓 SDEN 3</h3><p>${esc(i.sden)}</p></div>`:""}
+          ${!i.eten?.length||!i.locatie?`<div class="row" style="margin-top:12px"><button class="btn ghost" id="refreshInfo" ${busyInfo||!getKey()?"disabled":""}>${busyInfo?'<span class="spin"></span>Bezig…':"🔄 Vernieuw leerinfo (met eten & kaart)"}</button></div>`:""}
           <p class="note" style="margin-top:10px">Info gemaakt door AI; controleer belangrijke feiten in je cursusboek.</p>
         </div>
-      </div>` : `<div class="sec"><p class="note">Nog geen leerinfo. Tik op <b>Bewerken</b> en daarna op 📚 om die op te halen.</p></div>`}
+      </div>` : `<div class="sec">${busyInfo?`<p><span class="spin"></span>Leerinfo wordt opgehaald… dit verschijnt vanzelf.</p>`:`<p class="note">Nog geen leerinfo.</p><button class="btn p" id="refreshInfo" ${getKey()?"":"disabled"}>📚 Haal leerinfo op</button>`}</div>`}
       <div class="row" style="margin-top:18px">
         ${w.list==="proberen"?`<button class="btn p" id="moveBtn">✔️ Gedronken!</button>`:""}
         <button class="btn danger" id="delBtn">Verwijderen</button>
       </div>
     </div>`;
   document.querySelectorAll(".quiz button").forEach(b=>b.onclick=()=>{ const q=b.parentElement; q.classList.toggle("show"); b.textContent=q.classList.contains("show")?"Verberg":"Toon antwoord"; });
-  const rb=$("#revealBtn"); if(rb) rb.onclick=()=>{ $("#learnWrap").classList.remove("hidden-learn"); rb.parentElement.remove(); };
+  const rb=$("#revealBtn"); if(rb) rb.onclick=()=>{ $("#learnWrap").classList.remove("hidden-learn"); rb.parentElement.remove(); setTimeout(()=>miniMap?.invalidateSize(),50); };
+  const rf=$("#refreshInfo"); if(rf) rf.onclick=()=>{ startInfo(w.id, w).catch(e=>{ const s=document.createElement("div"); s.className="status show err"; s.innerHTML=gemErr(e); rf.after(s); }); showDetail(w,true); };
   $("#delBtn").onclick=()=>$("#confirm").classList.add("open");
-  const mv=$("#moveBtn"); if(mv) mv.onclick=()=>{ $("#detailSheet").classList.remove("open"); openForm({...w, list:"gedronken", mijn:{...(w.mijn||{}), datum:""}}); };
-  $("#detailSheet").classList.add("open"); $("#detailSheet").scrollTop=0;
+  const mv=$("#moveBtn"); if(mv) mv.onclick=()=>{ sheet.classList.remove("open"); openForm({...w, list:"gedronken", mijn:{...(w.mijn||{}), datum:new Date().toISOString().slice(0,10)}}); };
+  sheet.classList.add("open"); sheet.scrollTop = keep ? y : 0;
+  if (miniMap) { miniMap.remove(); miniMap=null; }
+  if (i?.locatie && window.L && $("#minimap")) {
+    miniMap = L.map("minimap",{zoomControl:false,attributionControl:true,dragging:true,scrollWheelZoom:false}).setView([i.locatie.lat,i.locatie.lon],7);
+    tiles(miniMap); L.marker([i.locatie.lat,i.locatie.lon],{icon:pin(w)}).addTo(miniMap);
+    setTimeout(()=>miniMap?.invalidateSize(),60);
+  } else if (i?.locatie && $("#minimap")) $("#minimap").outerHTML='<p class="note">Kaart niet beschikbaar zonder internet.</p>';
 }
 $("#editBtn").onclick=()=>{ if(current){ $("#detailSheet").classList.remove("open"); openForm(current); } };
 $("#cNo").onclick=()=>$("#confirm").classList.remove("open");
@@ -448,30 +604,32 @@ $("#cYes").onclick=async()=>{ $("#confirm").classList.remove("open"); if(!curren
   await dbDel(current.id); current=null; $("#detailSheet").classList.remove("open"); await reload(); };
 
 /* ---------- instellingen ---------- */
-function openSettings(){ $("#s_key").value=getKey(); $("#s_model").value=LS.get("gemModel")||"gemini-flash-latest"; status("#s_status",""); status("#b_status",""); $("#setSheet").classList.add("open"); }
+function openSettings(){ $("#s_key").value=getKey(); $("#s_model").value=LS.get("gemModel")||"gemini-flash-latest"; $("#s_deco").checked=LS.get("deco","1")==="1"; status("#s_status",""); status("#b_status",""); $("#setSheet").classList.add("open"); }
 $("#setBtn").onclick=openSettings; $("#keyBannerBtn").onclick=openSettings;
-function saveSettings(){ LS.set("gemKey",$("#s_key").value.trim()); LS.set("gemModel",$("#s_model").value.trim()||"gemini-flash-latest"); checkKey(); updateBtns(); }
+$("#s_deco").onchange=e=>LS.set("deco", e.target.checked?"1":"0");
+function saveSettings(){ const old=getModel(); LS.set("gemKey",$("#s_key").value.trim()); LS.set("gemModel",$("#s_model").value.trim()||"gemini-flash-latest"); if(getModel()!==old){ noThinkCfg=false; LS.set("noThinkCfg","0"); } checkKey(); updateBtns(); }
 $("#s_save").onclick=()=>{ saveSettings(); status("#s_status","✅ Opgeslagen."); };
 $("#s_test").onclick=async()=>{ saveSettings(); if(!getKey()) return status("#s_status","Vul eerst een sleutel in.",true);
-  status("#s_status",'<span class="spin"></span>Testen…');
-  try { await gemini('Antwoord met JSON: {"ok":true}'); status("#s_status","✅ Werkt! Je kunt nu wijnen laten herkennen."); }
+  status("#s_status",'<span class="spin"></span>Testen…'); const t0=Date.now();
+  try { await gemini('Antwoord met JSON: {"ok":true}',[],60000); status("#s_status",`✅ Werkt! (${((Date.now()-t0)/1000).toFixed(1)} sec)`); }
   catch(e){ status("#s_status", gemErr(e), true); } };
 
 /* ---------- back-up ---------- */
 $("#expBtn").onclick=async()=>{
   status("#b_status",'<span class="spin"></span>Back-up maken…');
-  const out=[]; for (const w of wines) out.push({...w, photo: w.photo ? {type:w.photo.type, data: await blobToB64(w.photo)} : null});
-  const blob=new Blob([JSON.stringify({app:"wijnboek",versie:1,datum:new Date().toISOString(),wijnen:out})],{type:"application/json"});
+  const out=[]; for (const w of wines) out.push({...w, photos: await Promise.all((w.photos||[]).map(async b=>({type:b.type, data: await blobToB64(b)})))});
+  const blob=new Blob([JSON.stringify({app:"wijnboek",versie:2,datum:new Date().toISOString(),wijnen:out})],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`wijnboek-backup-${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   status("#b_status",`✅ Back-up van ${out.length} wijnen gedownload. Bewaar hem bijvoorbeeld in Google Drive.`);
 };
+const b64ToBlob = (p) => { const bin=atob(p.data); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new Blob([u],{type:p.type||"image/jpeg"}); };
 $("#impIn").onchange=async e=>{
   const f=e.target.files?.[0]; e.target.value=""; if(!f) return;
   try {
     const j=JSON.parse(await f.text()); if(!Array.isArray(j.wijnen)) throw 0;
     for (const w of j.wijnen){
-      if (w.photo?.data){ const bin=atob(w.photo.data); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); w.photo=new Blob([u],{type:w.photo.type||"image/jpeg"}); } else w.photo=null;
+      w.photos = (w.photos||(w.photo?[w.photo]:[])).filter(p=>p?.data).map(b64ToBlob); delete w.photo;
       await dbPut(w);
     }
     await reload(); status("#b_status",`✅ ${j.wijnen.length} wijnen teruggezet.`);

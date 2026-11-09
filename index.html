@@ -103,7 +103,13 @@
   .rate button.on{color:var(--gold)}
   .hidden-learn .learn{filter:blur(6px);user-select:none;pointer-events:none}
   .minimap{height:220px;border-radius:12px;margin-top:8px;overflow:hidden;background:var(--soft)}
+  .sheet{z-index:2000}
+  .modal{z-index:3000}
+  .fab{z-index:1500}
+  #bigmap,.minimap{position:relative;z-index:0;isolation:isolate}
   #bigmap{height:calc(100vh - 230px);min-height:320px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:12px;background:var(--soft)}
+  .pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+  .pin span{transform:rotate(45deg);font-size:15px;line-height:1;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .leaflet-popup-content{font-family:system-ui,sans-serif}
   .leaflet-popup-content button{border:0;background:#7b1e3a;color:#fff;border-radius:8px;padding:6px 10px;margin-top:6px;cursor:pointer;font-weight:600}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
@@ -213,8 +219,8 @@
         <li>Kopieer de sleutel en plak hem hieronder.</li>
       </ol>
       <label>API-sleutel</label><input id="s_key" placeholder="AQ.… of AIza…" autocomplete="off">
-      <label>Model</label><input id="s_model" placeholder="gemini-flash-latest">
-      <p class="note">Laat "gemini-flash-latest" staan, tenzij herkennen niet meer werkt. Je sleutel blijft alleen op deze telefoon.</p>
+      <label>Model</label><input id="s_model" placeholder="gemini-flash-lite-latest">
+      <p class="note">Standaard: "gemini-flash-lite-latest" (snel). Wil je uitgebreidere info en heeft Google het niet druk, probeer dan "gemini-flash-latest". Je sleutel blijft alleen op deze telefoon.</p>
       <div class="row" style="margin-top:10px"><button class="btn p" id="s_save">Opslaan</button><button class="btn ghost" id="s_test">Test</button></div>
       <div class="status" id="s_status"></div>
     </div>
@@ -231,7 +237,7 @@
       </div>
       <div class="status" id="b_status"></div>
     </div>
-    <p class="note" style="text-align:center;margin-top:16px">Versie 2.1 · kaart © OpenStreetMap-bijdragers</p>
+    <p class="note" style="text-align:center;margin-top:16px">Versie 2.2 · kaart © OpenStreetMap-bijdragers</p>
   </div>
 </div>
 
@@ -320,7 +326,9 @@ function render(){
 
 const hasLoc = w => w.info?.locatie && isFinite(+w.info.locatie.lat) && isFinite(+w.info.locatie.lon) && (+w.info.locatie.lat||+w.info.locatie.lon);
 function tiles(map){ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map); }
-const pin = (w) => L.divIcon({className:"", html:`<div style="font-size:26px;line-height:26px;transform:translate(-4px,-22px)">${w.type==="Wit"?"🥂":w.type==="Rosé"?"🌸":"🍷"}</div>`, iconSize:[20,20]});
+const PINCOL = { Rood:"#7b1e3a", Wit:"#e8c547", "Rosé":"#f08aa6", Mousserend:"#f3d77a", Zoet:"#d98a1c", Versterkt:"#6b3a1f" };
+const pin = (w) => L.divIcon({className:"", iconSize:[34,44], iconAnchor:[17,42], popupAnchor:[0,-38],
+  html:`<div class="pin" style="background:${PINCOL[w.type]||"#7b1e3a"}"><span>${w.list==="proberen"?"★":"🍷"}</span></div>`});
 let bigMap=null, bigLayer=null;
 function drawBigMap(){
   if (!window.L) { $("#mapNote").textContent="De kaart kan niet laden zonder internet."; return; }
@@ -333,7 +341,7 @@ function drawBigMap(){
     const m=L.marker(ll,{icon:pin(w)}).addTo(bigLayer);
     const div=document.createElement("div");
     div.innerHTML=`<b>${esc(w.naam||"Wijn")}</b><br>${esc(w.info.locatie.plaats||[w.regio,w.land].filter(Boolean).join(", "))}${w.list==="proberen"?"<br><i>wil ik proberen</i>":""}<br><button>Bekijk</button>`;
-    div.querySelector("button").onclick=()=>showDetail(w);
+    div.querySelector("button").onclick=()=>{ bigMap.closePopup(); showDetail(w); };
     m.bindPopup(div);
   });
   if (pts.length===1) bigMap.setView(pts[0],7); else if (pts.length) bigMap.fitBounds(pts,{padding:[30,30],maxZoom:8});
@@ -393,7 +401,8 @@ $("#camIn").onchange=onPhoto; $("#galIn").onchange=onPhoto;
 
 /* ---------- Gemini ---------- */
 const getKey = () => LS.get("gemKey").trim();
-const getModel = () => LS.get("gemModel").trim() || "gemini-flash-latest";
+const DEFAULT_MODEL = "gemini-flash-lite-latest";
+const getModel = () => LS.get("gemModel").trim() || DEFAULT_MODEL;
 function checkKey(){ $("#keyBanner").classList.toggle("show", !getKey()); }
 function updateBtns(){
   const k=!!getKey();
@@ -404,18 +413,20 @@ function updateBtns(){
 const blobToB64 = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(b); });
 
 let noThinkCfg = LS.get("noThinkCfg")==="1";
-const FALLBACK_MODEL = "gemini-flash-lite-latest";
+const altModel = () => getModel()==="gemini-flash-lite-latest" ? "gemini-flash-latest" : "gemini-flash-lite-latest";
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 /* bij drukte bij Google: 2x opnieuw proberen, daarna het lichtere model */
 async function gemini(prompt, images=[], timeoutMs=90000, onRetry){
   const waits=[2500,6000];
+  let useAlt=false;
   for (let a=0;;a++){
-    try { return await geminiOnce(prompt, images, timeoutMs, a>waits.length ? FALLBACK_MODEL : null); }
+    try { return await geminiOnce(prompt, images, timeoutMs, useAlt ? altModel() : null); }
     catch(e){
-      const busy = e.status>=500 || e.status===429 && /overload|unavailable|exhaust/i.test(e.message||"");
-      if (!busy || a>waits.length || getModel()===FALLBACK_MODEL && a>=waits.length) throw e;
-      onRetry?.(a<waits.length ? `Google heeft het druk, ik probeer het opnieuw (${a+2}/3)…` : "Nog steeds druk, ik probeer het lichtere model…");
-      if (a<waits.length) await sleep(waits[a]);
+      const busy = e.status>=500 || e.kind==="timeout" || e.status===429 && /overload|unavailable|exhaust/i.test(e.message||"");
+      if (!busy || useAlt) throw e;
+      if (e.kind==="timeout" || a>=waits.length) { useAlt=true; onRetry?.("Dat duurt te lang, ik probeer het andere Gemini-model…"); continue; }
+      onRetry?.(`Google heeft het druk, ik probeer het opnieuw (${a+2}/3)…`);
+      await sleep(waits[a]);
     }
   }
 }
@@ -448,7 +459,7 @@ function gemErr(e){
   if (e.kind==="timeout") return "Google gaf te lang geen antwoord. Probeer het opnieuw.";
   if (e.kind==="network") return "Kon Google niet bereiken. Gebruik je Brave? Zet dan Shields uit voor deze site (leeuwtje in de adresbalk).";
   if (e.status===400 || e.status===401 || e.status===403) return "Je sleutel lijkt niet te kloppen. Controleer hem bij ⚙️ Instellingen.";
-  if (e.status===404) return "Het model bestaat niet (meer). Vul bij ⚙️ een ander model in, bijv. gemini-flash-latest.";
+  if (e.status===404) return "Het model bestaat niet (meer). Vul bij ⚙️ een ander model in, bijv. gemini-flash-lite-latest.";
   if (e.status===429) return "Je gratis limiet is even bereikt. Probeer het over een minuut (of morgen) opnieuw.";
   if (e.status>=500) return "Google heeft het even druk. Probeer het zo opnieuw.";
   return "Het lukte niet: "+esc(e.message);
@@ -494,7 +505,7 @@ function cleanInfo(r){
 /* leerinfo ophalen voor een wijn; werkt ook door als je al hebt opgeslagen */
 function startInfo(id, fields){
   if (pending.has(id)) return pending.get(id);
-  const p = gemini(promptInfo(fields)).then(cleanInfo).then(async info => {
+  const p = gemini(promptInfo(fields), [], 60000).then(cleanInfo).then(async info => {
     if (id===draftId && $("#formSheet").classList.contains("open")) learn = info;
     const saved = await dbGet(id);
     if (saved) { saved.info = info; await dbPut(saved); await reload(); if (current?.id===id) showDetail(saved, true); if (curList==="kaart") drawBigMap(); }
@@ -510,7 +521,7 @@ async function recognize(){
   if (busy || !photos.length || !getKey()) return; busy=true;
   status("#status",'<span class="spin"></span>Etiket lezen…');
   try {
-    const r = await gemini(PROMPT_LABEL, photos, 60000, m=>status("#status",'<span class="spin"></span>'+m));
+    const r = await gemini(PROMPT_LABEL, photos, 40000, m=>status("#status",'<span class="spin"></span>'+m));
     if (r.herkend===false && !r.naam) { status("#status","Ik kon het etiket niet goed lezen. Probeer een scherpere foto, of vul de naam in en tik op 📚.",true); return; }
     fillFrom(r, true);
     status("#status",'✅ Herkend! Controleer de gegevens. <span class="spin"></span>Leerinfo wordt opgehaald… je kunt al opslaan.');
@@ -619,10 +630,10 @@ $("#cYes").onclick=async()=>{ $("#confirm").classList.remove("open"); if(!curren
   await dbDel(current.id); current=null; $("#detailSheet").classList.remove("open"); await reload(); };
 
 /* ---------- instellingen ---------- */
-function openSettings(){ $("#s_key").value=getKey(); $("#s_model").value=LS.get("gemModel")||"gemini-flash-latest"; $("#s_deco").checked=LS.get("deco","1")==="1"; status("#s_status",""); status("#b_status",""); $("#setSheet").classList.add("open"); }
+function openSettings(){ $("#s_key").value=getKey(); $("#s_model").value=LS.get("gemModel")||DEFAULT_MODEL; $("#s_deco").checked=LS.get("deco","1")==="1"; status("#s_status",""); status("#b_status",""); $("#setSheet").classList.add("open"); }
 $("#setBtn").onclick=openSettings; $("#keyBannerBtn").onclick=openSettings;
 $("#s_deco").onchange=e=>LS.set("deco", e.target.checked?"1":"0");
-function saveSettings(){ const old=getModel(); LS.set("gemKey",$("#s_key").value.trim()); LS.set("gemModel",$("#s_model").value.trim()||"gemini-flash-latest"); if(getModel()!==old){ noThinkCfg=false; LS.set("noThinkCfg","0"); } checkKey(); updateBtns(); }
+function saveSettings(){ const old=getModel(); LS.set("gemKey",$("#s_key").value.trim()); LS.set("gemModel",$("#s_model").value.trim()||DEFAULT_MODEL); if(getModel()!==old){ noThinkCfg=false; LS.set("noThinkCfg","0"); } checkKey(); updateBtns(); }
 $("#s_save").onclick=()=>{ saveSettings(); status("#s_status","✅ Opgeslagen."); };
 $("#s_test").onclick=async()=>{ saveSettings(); if(!getKey()) return status("#s_status","Vul eerst een sleutel in.",true);
   status("#s_status",'<span class="spin"></span>Testen…'); const t0=Date.now();

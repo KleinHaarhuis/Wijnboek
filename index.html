@@ -3,42 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#5c0d25">
+<meta name="theme-color" content="#e6ecd8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#22382a" media="(prefers-color-scheme: dark)">
 <title>Mijn Wijnboek</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,400&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <style>
+  /* Stijl "botanische atlas", gelijk aan de Wijnbrevet Trainer: papier, salie, olijf; oudroze voor rood, licht goud voor wit. */
   :root{
-    --bg:#f5f1ee; --card:#ffffff; --ink:#1f1416; --muted:#857574; --line:#ece4df;
-    --wine:#8b1538; --wine2:#b8325a; --gold:#e0a526; --ok:#2f7a45; --soft:#f3eaec;
-    --shadow:0 1px 2px rgba(60,20,30,.06),0 6px 18px rgba(60,20,30,.08);
-    --serif:"Fraunces",Georgia,serif; --sans:"Inter",system-ui,-apple-system,Roboto,sans-serif;
+    --bg:#f3f1e7; --card:#fbfaf4; --ink:#26321f; --muted:#66735c; --line:#dfe2d1;
+    --wine:#3b5220; --wine2:#55752a; --on:#f4f1e6; --leaf:#7f9a5a; --rose:#a8687b; --gold:#b3913f; --ok:#4f7a2e; --soft:#e9ecdc;
+    --hero:#e6ecd8; --bad:#a2505f; --bad-bg:#f4e1e3; --warn:#6b5416; --warn-bg:#f3ead2;
+    --shadow:0 1px 2px rgba(38,50,31,.05),0 6px 18px rgba(38,50,31,.07);
+    --serif:"Fraunces",Georgia,serif; --sans:"Figtree",system-ui,-apple-system,Roboto,sans-serif;
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#141011; --card:#211a1c; --ink:#f4ecea; --muted:#ab9a98; --line:#33292c;
-      --wine:#d1557a; --wine2:#e07a98; --gold:#f0bf4c; --ok:#7cc48c; --soft:#2c2225;
+    :root{ color-scheme:dark; --bg:#14201a; --card:#1c2b23; --ink:#e9eee2; --muted:#a7b59c; --line:#2d3f33;
+      --wine:#a9c47f; --wine2:#c2d79f; --on:#14201a; --leaf:#a9c47f; --rose:#d29aab; --gold:#dcc58a; --ok:#9cc77a; --soft:#24352b;
+      --hero:#22382a; --bad:#e3a3b0; --bad-bg:#3b2a2f; --warn:#e2c27a; --warn-bg:#3a3420;
       --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.35); }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45}
-  h1,h2,h3{font-family:var(--serif);margin:0;font-weight:700;letter-spacing:-.01em}
+  h1,h2,h3{font-family:var(--serif);margin:0;font-weight:500}
   button,input,select,textarea{font:inherit;color:inherit}
   .wrap{max-width:720px;margin:0 auto;padding:0 16px 140px;position:relative}
   /* kop */
-  .hero{background:linear-gradient(160deg,#5c0d25 0%,#8b1538 55%,#b8325a 100%);color:#fff;padding:22px 18px 70px;border-radius:0 0 28px 28px;position:relative;overflow:hidden}
-  .hero::after{content:"";position:absolute;right:-40px;top:-30px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%)}
+  .hero{background:var(--hero);color:var(--ink);padding:22px 18px 70px;border-radius:0 0 28px 28px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-40px;top:-30px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--leaf) 22%,transparent),transparent 70%)}
   .hero .in{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;position:relative;z-index:1}
-  .hero h1{font-size:1.9rem;line-height:1.1}
+  .hero h1{font-size:1.9rem;line-height:1.1;display:flex;align-items:center;gap:8px}
+  .hero .acts{display:flex;gap:8px}
+  .hero a.icon{display:grid;place-items:center;text-decoration:none}
   .hero .sub{opacity:.85;font-size:.92rem;margin-top:4px}
-  .hero .icon{background:rgba(255,255,255,.16);color:#fff}
+  .hero .icon{background:var(--card);color:var(--ink)}
   .statrow{max-width:720px;margin:-48px auto 0;padding:0 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative;z-index:2}
   .stat{background:var(--card);border-radius:16px;padding:12px 10px;text-align:center;box-shadow:var(--shadow)}
-  .stat b{display:block;font-family:var(--serif);font-size:1.5rem;color:var(--wine);line-height:1.1}
+  .stat b{display:block;font-family:var(--serif);font-weight:500;font-size:1.5rem;color:var(--wine);line-height:1.1}
   .stat span{font-size:.75rem;color:var(--muted);font-weight:500}
   .viewtitle{font-size:1.25rem;margin:22px 2px 10px}
   .count{color:var(--muted);font-size:.85rem}
@@ -58,7 +64,7 @@
   .wine .ph{width:84px;height:112px;flex:none;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:2.2rem;overflow:hidden;position:relative}
   .wine .ph img{width:100%;height:100%;object-fit:cover}
   .wine .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:2px}
-  .wine .n{font-family:var(--serif);font-weight:700;font-size:1.08rem;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .wine .n{font-family:var(--serif);font-weight:500;font-size:1.08rem;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .wine .pr{color:var(--muted);font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .wine .s{font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .wine .bottom{margin-top:auto;display:flex;align-items:center;gap:8px;justify-content:space-between}
@@ -75,22 +81,22 @@
   .bottomnav button .ic{font-size:1.35rem;line-height:1;filter:grayscale(1);opacity:.7;transition:all .15s}
   .bottomnav button.on{color:var(--wine)}
   .bottomnav button.on .ic{filter:none;opacity:1;transform:translateY(-1px) scale(1.08)}
-  .fab{position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom));background:linear-gradient(135deg,var(--wine),var(--wine2));color:#fff;border:0;border-radius:999px;padding:15px 22px;font-weight:700;font-size:1rem;box-shadow:0 10px 26px rgba(139,21,56,.4);cursor:pointer;z-index:1500}
+  .fab{position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom));background:var(--wine);color:var(--on);border:0;border-radius:999px;padding:15px 22px;font-weight:700;font-size:1rem;box-shadow:0 10px 26px rgba(38,50,31,.3);cursor:pointer;z-index:1500}
   /* statistieken */
   .bar{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:.9rem}
   .bar .l{width:120px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bar .b{flex:1;height:10px;background:var(--soft);border-radius:99px;overflow:hidden}
-  .bar .b div{height:100%;background:linear-gradient(90deg,var(--wine),var(--wine2));border-radius:99px}
+  .bar .b div{height:100%;background:var(--leaf);border-radius:99px}
   .bar .v{width:26px;text-align:right;font-weight:600;color:var(--muted)}
   .grapes{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
   .grape{padding:6px 11px;border-radius:999px;font-size:.84rem;font-weight:500;background:var(--soft);color:var(--muted)}
   .grape.done{background:color-mix(in srgb,var(--ok) 16%,var(--card));color:var(--ok);font-weight:600}
   .progress{height:12px;background:var(--soft);border-radius:99px;overflow:hidden;margin:8px 0 4px}
-  .progress div{height:100%;background:linear-gradient(90deg,var(--ok),#5fb37a);border-radius:99px}
+  .progress div{height:100%;background:var(--leaf);border-radius:99px}
   .btn{border:0;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer;background:var(--soft);color:var(--ink);text-align:center}
-  .btn.p{background:linear-gradient(135deg,var(--wine),var(--wine2));color:#fff;box-shadow:0 4px 12px rgba(139,21,56,.25)}
+  .btn.p{background:var(--wine);color:var(--on);box-shadow:0 4px 12px rgba(38,50,31,.18)}
   .btn.ghost{background:none;border:1px solid var(--line)}
-  .btn.danger{background:none;color:#c0392b;border:1px solid #e3b4b0}
+  .btn.danger{background:none;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 40%,var(--line))}
   .btn:disabled{opacity:.55;cursor:default}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .row > *{flex:1}
@@ -110,7 +116,7 @@
   .note{font-size:.85rem;color:var(--muted)}
   .status{margin-top:10px;font-size:.9rem;padding:10px 12px;border-radius:10px;background:var(--soft);display:none}
   .status.show{display:block}
-  .status.err{background:#fbe3e1;color:#8c1d16}
+  .status.err{background:var(--bad-bg);color:var(--bad)}
   /* detail */
   #detailSheet{--tint:transparent}
   .tintbg{position:absolute;left:0;right:0;top:0;height:520px;background:linear-gradient(180deg,var(--tint),transparent);pointer-events:none;z-index:0}
@@ -159,13 +165,13 @@
   .pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
   .pin span{transform:rotate(45deg);font-size:15px;line-height:1;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .leaflet-popup-content{font-family:system-ui,sans-serif}
-  .leaflet-popup-content button{border:0;background:#7b1e3a;color:#fff;border-radius:8px;padding:6px 10px;margin-top:6px;cursor:pointer;font-weight:600}
+  .leaflet-popup-content button{border:0;background:#3b5220;color:#fff;border-radius:8px;padding:6px 10px;margin-top:6px;cursor:pointer;font-weight:600}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
   .modal.open{display:flex}
   .modal .box{background:var(--card);border-radius:16px;padding:20px;max-width:360px;width:100%}
   .spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
   @keyframes s{to{transform:rotate(360deg)}}
-  .banner{background:#fff4d6;color:#6b4e00;border-radius:12px;padding:10px 12px;font-size:.9rem;margin-bottom:12px;display:none}
+  .banner{background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:.9rem;margin-bottom:12px;display:none}
   .banner.show{display:block}
   .banner button{margin-top:8px}
   a{color:var(--wine)}
@@ -173,8 +179,8 @@
 </head>
 <body>
 <div class="hero"><div class="in">
-  <div><h1>Mijn Wijnboek</h1><div class="sub" id="heroSub">Proef, leer en onthoud.</div></div>
-  <button class="icon" id="setBtn" aria-label="Instellingen">⚙️</button>
+  <div><h1><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 0 6 2 6 5-3 0-6-2-6-5z" fill="var(--leaf)"/><g fill="var(--rose)"><circle cx="9" cy="11" r="2.4"/><circle cx="14" cy="11" r="2.4"/><circle cx="11.5" cy="15" r="2.4"/><circle cx="7" cy="15" r="2.2"/><circle cx="16" cy="15" r="2.2"/><circle cx="11.5" cy="19.2" r="2.2"/></g></svg>Mijn Wijnboek</h1><div class="sub" id="heroSub">Proef, leer en onthoud.</div></div>
+  <div class="acts"><a class="icon" href="../Wijnbrevet/" aria-label="Open de Wijnbrevet Trainer" title="Wijnbrevet Trainer">🎓</a><button class="icon" id="setBtn" aria-label="Instellingen">⚙️</button></div>
 </div></div>
 <div class="statrow" id="statrow"></div>
 <div class="wrap">
@@ -307,7 +313,7 @@ const AROMA = {
   kruiden:["🌿","🍃"], specerijen:["🌶️","⭐"], hout_vanille:["🪵"], honing:["🍯"], boter:["🧈"],
   noten:["🌰","🥜"], chocolade_koffie:["🍫","☕"], aards:["🍄","🍂"], mineraal:["🪨"], rook:["💨"], tabak_leer:["🍂"]
 };
-const TINT = { Rood:"rgba(110,15,40,.35)", Wit:"rgba(230,200,110,.35)", "Rosé":"rgba(240,150,170,.35)",
+const TINT = { Rood:"rgba(168,104,123,.35)", Wit:"rgba(230,200,110,.35)", "Rosé":"rgba(240,150,170,.35)",
   Mousserend:"rgba(240,215,140,.35)", Zoet:"rgba(215,150,50,.35)", Versterkt:"rgba(120,60,30,.35)" };
 
 const $ = s => document.querySelector(s);
@@ -362,7 +368,7 @@ const FLAG = {frankrijk:"🇫🇷",italië:"🇮🇹",italie:"🇮🇹",spanje:"
   "verenigde staten":"🇺🇸",vs:"🇺🇸",usa:"🇺🇸",amerika:"🇺🇸",canada:"🇨🇦",chili:"🇨🇱",argentinië:"🇦🇷",argentinie:"🇦🇷",uruguay:"🇺🇾",brazilië:"🇧🇷","zuid-afrika":"🇿🇦",australië:"🇦🇺",australie:"🇦🇺",
   "nieuw-zeeland":"🇳🇿",nederland:"🇳🇱",belgië:"🇧🇪",engeland:"🇬🇧","verenigd koninkrijk":"🇬🇧",libanon:"🇱🇧",israël:"🇮🇱",georgië:"🇬🇪",moldavië:"🇲🇩",roemenië:"🇷🇴",bulgarije:"🇧🇬",turkije:"🇹🇷",marokko:"🇲🇦",china:"🇨🇳",japan:"🇯🇵",luxemburg:"🇱🇺",tsjechië:"🇨🇿"};
 const flag = l => FLAG[(l||"").trim().toLowerCase()] || "";
-const TCOL = { Rood:"#8b1538", Wit:"#e3c04a", "Rosé":"#f08aa6", Mousserend:"#e8cf7c", Zoet:"#d98a1c", Versterkt:"#6b3a1f" };
+const TCOL = { Rood:"#a8687b", Wit:"#d9bf7a", "Rosé":"#e3a9b5", Mousserend:"#e6d59a", Zoet:"#c9963f", Versterkt:"#7a5a3c" };
 
 function drawHeader(){
   const ged = wines.filter(w=>(w.list||"gedronken")==="gedronken");
@@ -427,9 +433,9 @@ function drawStats(){
 
 const hasLoc = w => w.info?.locatie && isFinite(+w.info.locatie.lat) && isFinite(+w.info.locatie.lon) && (+w.info.locatie.lat||+w.info.locatie.lon);
 function tiles(map){ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map); }
-const PINCOL = { Rood:"#7b1e3a", Wit:"#e8c547", "Rosé":"#f08aa6", Mousserend:"#f3d77a", Zoet:"#d98a1c", Versterkt:"#6b3a1f" };
+const PINCOL = { Rood:"#a8687b", Wit:"#c9a84f", "Rosé":"#e3a9b5", Mousserend:"#d9c476", Zoet:"#c9963f", Versterkt:"#7a5a3c" };
 const pin = (w) => L.divIcon({className:"", iconSize:[34,44], iconAnchor:[17,42], popupAnchor:[0,-38],
-  html:`<div class="pin" style="background:${PINCOL[w.type]||"#7b1e3a"}"><span>${w.list==="proberen"?"★":"🍷"}</span></div>`});
+  html:`<div class="pin" style="background:${PINCOL[w.type]||"#a8687b"}"><span>${w.list==="proberen"?"★":"🍷"}</span></div>`});
 let bigMap=null, bigLayer=null;
 function drawBigMap(){
   if (!window.L) { $("#mapNote").textContent="De kaart kan niet laden zonder internet."; return; }
@@ -750,7 +756,7 @@ async function shareWine(w){
     else { await navigator.clipboard.writeText(text); toast("Gekopieerd! Plak het in WhatsApp of een bericht."); }
   } catch(e){ if (e?.name!=="AbortError") { try{ await navigator.clipboard.writeText(text); toast("Gekopieerd! Plak het in WhatsApp of een bericht."); }catch(_){} } }
 }
-function toast(t){ const d=document.createElement("div"); d.textContent=t; d.style.cssText="position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#1f1416;color:#fff;padding:10px 16px;border-radius:12px;z-index:4000;font-size:.9rem;box-shadow:0 6px 20px rgba(0,0,0,.3)"; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
+function toast(t){ const d=document.createElement("div"); d.textContent=t; d.style.cssText="position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#26321f;color:#f4f1e6;padding:10px 16px;border-radius:12px;z-index:4000;font-size:.9rem;box-shadow:0 6px 20px rgba(0,0,0,.3)"; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
 
 /* ---------- instellingen ---------- */
 function openSettings(){ $("#s_key").value=getKey(); $("#s_model").value=LS.get("gemModel")||DEFAULT_MODEL; $("#s_deco").checked=LS.get("deco","1")==="1"; status("#s_status",""); status("#b_status",""); $("#setSheet").classList.add("open"); }

@@ -588,11 +588,38 @@ Antwoord met ALLEEN JSON:
 "feitjes":["3 korte, leuke en kloppende weetjes"],
 "sden":"Welke categorie van de SDEN 3-lijst is dit, of welke examenwijn lijkt er het meest op?",
 "quiz":[{"vraag":"","antwoord":""},{"vraag":"","antwoord":""},{"vraag":"","antwoord":""}],
-"locatie":{"lat":0,"lon":0,"plaats":"echte plaatsnaam: het dorp van de producent, anders de bekendste plaats van de appellatie"}}
-Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken).
+"locatie":{"lat":0,"lon":0,"plaats":"echte plaatsnaam: het dorp van de producent, anders de bekendste plaats van de appellatie"},
+"jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best"}}
+Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken). Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".
 Context: ${SDEN3}`;
 }
 
+function promptVintage(w){
+  return `Je bent een wijndocent voor een Nederlandse cursist. Geef jaargang-informatie over deze wijn:
+naam: ${w.naam}\nproducent: ${w.producent}\njaar: ${w.jaar}\nland: ${w.land}\nregio: ${w.regio}\nappellatie: ${w.appellatie}\ntype: ${w.type}
+Antwoord met ALLEEN JSON: {"jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best"}}
+Regels: Nederlands. Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".`;
+}
+const cleanVintage = j => { const v=j?.jaargang||j||{}; const goed=(v.goed||[]).filter(x=>x?.jaar).slice(0,6).map(x=>({jaar:String(x.jaar),waarom:x.waarom||""}));
+  return (v.ditJaar||goed.length||v.drinken) ? {ditJaar:v.ditJaar||"", oordeel:["top","goed","wisselend","zwak"].includes(v.oordeel)?v.oordeel:"", goed, drinken:v.drinken||""} : null; };
+const vPending=new Set();
+async function startVintage(w){
+  if(vPending.has(w.id)) return; vPending.add(w.id); showDetail(w,true);
+  try{ const v=cleanVintage(await gemini(promptVintage(w),[],45000)); const saved=await dbGet(w.id);
+    if(saved?.info){ saved.info.jaargang=v||{leeg:1}; await dbPut(saved); await reload(); } }
+  finally{ vPending.delete(w.id); const x=wines.find(z=>z.id===w.id); if(current?.id===w.id&&x) showDetail(x,true); }
+}
+const OORDEEL={top:"🌟 topjaar",goed:"👍 goed jaar",wisselend:"〰️ wisselend jaar",zwak:"👎 zwak jaar"};
+function vintageHTML(w){
+  const v=w.info?.jaargang, busy=vPending.has(w.id);
+  if(!v||v.leeg) return `<div class="sec"><h3>📅 Jaargangen</h3>${busy?`<p><span class="spin"></span>Jaargangen worden opgehaald…</p>`:`${v?.leeg?`<p class="note">Hier was niets betrouwbaars over te vinden.</p>`:""}<button class="btn ghost" id="vintBtn" ${getKey()?"":"disabled"}>📅 ${v?.leeg?"Probeer opnieuw":"Haal goede jaren op"}</button>`}</div>`;
+  return `<div class="sec"><h3>📅 Jaargangen</h3>
+    ${w.jaar&&(v.ditJaar||v.oordeel)?`<p><b>${esc(w.jaar)}${v.oordeel?` · ${OORDEEL[v.oordeel]}`:""}</b>${v.ditJaar?`<br>${esc(v.ditJaar)}`:""}</p>`:""}
+    ${v.goed.length?`<p class="note" style="margin:8px 0 4px">Goede recente jaren voor deze streek</p><div class="chips" style="margin:0 0 6px">${v.goed.map(g=>`<span class="chip"${w.jaar&&String(w.jaar)===g.jaar?' style="outline:2px solid var(--rose)"':""}>${esc(g.jaar)}</span>`).join("")}</div>
+      <ul>${v.goed.filter(g=>g.waarom).map(g=>`<li><b>${esc(g.jaar)}</b> — ${esc(g.waarom)}</li>`).join("")}</ul>`:""}
+    ${v.drinken?`<p style="margin-top:6px">🍷 <b>Op zijn best:</b> ${esc(v.drinken)}</p>`:""}
+    <p class="note" style="margin-top:6px">Jaargangen verschillen per streek en per producent; dit is een globaal beeld.</p></div>`;
+}
 const formFields = () => ({...Object.fromEntries(F.map(k=>[k,$("#f_"+k).value.trim()])), druiven:$("#f_druiven").value.split(",").map(s=>s.trim()).filter(Boolean)});
 
 function fillFrom(r, overwrite){
@@ -606,6 +633,7 @@ function cleanInfo(r){
   return { herkomst:r.herkomst||"", hoeGemaakt:r.hoeGemaakt||"", smaakprofiel:r.smaakprofiel||"",
     aromas:(r.aromas||[]).filter(a=>AROMA[a]), eten:(r.eten||[]).filter(x=>x?.gerecht),
     feitjes:r.feitjes||[], sden:r.sden||"", quiz:(r.quiz||[]).filter(q=>q?.vraag),
+    jaargang: cleanVintage(r.jaargang),
     locatie: r.locatie && (+r.locatie.lat||+r.locatie.lon) ? {lat:+r.locatie.lat, lon:+r.locatie.lon, plaats:r.locatie.plaats||""} : null };
 }
 
@@ -738,6 +766,7 @@ function showDetail(w, keep){
             ${i.aromas?.length?`<div class="chips" style="margin:0 0 6px">${i.aromas.map(a=>`<span class="chip">${AROMA[a][0]} ${esc(a.replace(/_/g," "))}</span>`).join("")}</div>`:""}
             <p>${esc(i.smaakprofiel)}</p></div>`:""}
           ${i.eten?.length?`<div class="sec"><h3>🍽️ Lekker bij</h3><ul>${i.eten.map(e=>`<li><b>${esc(e.gerecht)}</b>${e.waarom?` — ${esc(e.waarom)}`:""}</li>`).join("")}</ul></div>`:""}
+          ${vintageHTML(w)}
           ${i.feitjes?.length?`<div class="sec"><h3>💡 Leuke feitjes</h3><ul>${i.feitjes.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>`:""}
           ${i.sden?`<div class="sec"><h3>🎓 SDEN 3</h3><p>${esc(i.sden)}</p></div>`:""}
           ${!i.eten?.length||!i.locatie?`<div class="row" style="margin-top:12px"><button class="btn ghost" id="refreshInfo" ${busyInfo||!getKey()?"disabled":""}>${busyInfo?'<span class="spin"></span>Bezig…':"🔄 Vernieuw leerinfo (met eten & kaart)"}</button></div>`:""}
@@ -753,6 +782,7 @@ function showDetail(w, keep){
   document.querySelectorAll(".quiz button").forEach(b=>b.onclick=()=>{ const q=b.parentElement; q.classList.toggle("show"); b.textContent=q.classList.contains("show")?"Verberg":"Toon antwoord"; });
   const rb=$("#revealBtn"); if(rb) rb.onclick=()=>{ $("#learnWrap").classList.remove("hidden-learn"); rb.parentElement.remove(); setTimeout(()=>miniMap?.invalidateSize(),50); };
   const rf=$("#refreshInfo"); if(rf) rf.onclick=()=>{ startInfo(w.id, w).catch(e=>{ const s=document.createElement("div"); s.className="status show err"; s.innerHTML=gemErr(e); rf.after(s); }); showDetail(w,true); };
+  const vb=$("#vintBtn"); if(vb) vb.onclick=()=>startVintage(w).catch(e=>{ const s=document.createElement("div"); s.className="status show err"; s.innerHTML=gemErr(e); ($("#vintBtn")||$("#detail")).after(s); });
   $("#delBtn").onclick=()=>$("#confirm").classList.add("open");
   $("#shareBtn").onclick=()=>shareWine(w);
   const mv=$("#moveBtn"); if(mv) mv.onclick=()=>{ sheet.classList.remove("open"); openForm({...w, list:"gedronken", mijn:{...(w.mijn||{}), datum:new Date().toISOString().slice(0,10)}}); };

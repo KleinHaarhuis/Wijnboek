@@ -326,7 +326,7 @@ function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open("wijnb
   r.onupgradeneeded=()=>r.result.createObjectStore("wines",{keyPath:"id"});
   r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 function tx(mode, fn){ return new Promise((res,rej)=>{ const t=idb.transaction("wines",mode); const s=t.objectStore("wines"); const out=fn(s);
-  t.oncomplete=()=>res(out?.result ?? out); t.onerror=()=>rej(t.error); }); }
+  t.oncomplete=()=>res(out instanceof IDBRequest ? out.result : out); t.onerror=()=>rej(t.error); }); }
 const dbAll = () => tx("readonly", s=>s.getAll());
 const dbGet = id => tx("readonly", s=>s.get(id));
 const dbPut = w => tx("readwrite", s=>s.put(w));
@@ -345,7 +345,7 @@ async function reload(){
 }
 
 (async()=>{
-  try { idb = await openDB(); await reload(); } catch(e){ document.body.insertAdjacentHTML("afterbegin","<p style='padding:16px'>Opslag werkt niet in deze browser.</p>"); }
+  try { idb = await openDB(); await reload(); setTimeout(repairLocs, 2500); } catch(e){ document.body.insertAdjacentHTML("afterbegin","<p style='padding:16px'>Opslag werkt niet in deze browser.</p>"); }
   try { navigator.storage?.persist?.(); } catch(e){}
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
   checkKey();
@@ -588,7 +588,7 @@ Antwoord met ALLEEN JSON:
 "feitjes":["3 korte, leuke en kloppende weetjes"],
 "sden":"Welke categorie van de SDEN 3-lijst is dit, of welke examenwijn lijkt er het meest op?",
 "quiz":[{"vraag":"","antwoord":""},{"vraag":"","antwoord":""},{"vraag":"","antwoord":""}],
-"locatie":{"lat":0,"lon":0,"plaats":"dorp/streek van de producent"}}
+"locatie":{"lat":0,"lon":0,"plaats":"echte plaatsnaam: het dorp van de producent, anders de bekendste plaats van de appellatie"}}
 Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken).
 Context: ${SDEN3}`;
 }
@@ -609,10 +609,37 @@ function cleanInfo(r){
     locatie: r.locatie && (+r.locatie.lat||+r.locatie.lon) ? {lat:+r.locatie.lat, lon:+r.locatie.lon, plaats:r.locatie.plaats||""} : null };
 }
 
+/* Locatie: Gemini verzint coördinaten soms verkeerd (Dürnstein kwam in Oekraïne terecht).
+   Daarom zoeken we de plaatsnaam op bij OpenStreetMap (Nominatim) en gebruiken we de coördinaten van Gemini alleen als dat niets oplevert. */
+let geoLast=0;
+async function geocode(q){
+  const wait=geoLast+1100-Date.now(); if(wait>0) await new Promise(r=>setTimeout(r,wait)); geoLast=Date.now();
+  const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=nl&q="+encodeURIComponent(q));
+  if(!r.ok) throw new Error("geocode "+r.status);
+  const j=await r.json(); return j[0]?{lat:+(+j[0].lat).toFixed(4),lon:+(+j[0].lon).toFixed(4)}:null;
+}
+async function fixLoc(info, w){
+  const plaats=info.locatie?.plaats||"", land=w.land||"";
+  const tries=[...new Set([[plaats,land],[w.appellatie,land],[w.regio,land]].filter(x=>x[0]).map(x=>x.filter(Boolean).join(", ")))];
+  for(const q of tries){ const g=await geocode(q); if(g){ info.locatie={lat:g.lat, lon:g.lon, plaats:plaats||q.split(",")[0], geo:1}; return info; } }
+  if(info.locatie) info.locatie.geo=2;   // niets gevonden: coördinaten van Gemini blijven staan
+  return info;
+}
+const withLoc = (info, w) => fixLoc(info, w).catch(()=>info);   // offline of geen antwoord: niet blokkeren
+/* Bestaande wijnen één keer nalopen, zodat oude verkeerde plekken ook goed komen. */
+async function repairLocs(){
+  const todo=wines.filter(w=>w.info?.locatie && !w.info.locatie.geo).slice(0,40); let changed=false;
+  for(const w of todo){
+    try{ const saved=await dbGet(w.id); if(!saved?.info?.locatie) continue; await fixLoc(saved.info, saved); await dbPut(saved); changed=true; }
+    catch(e){ break; }   // geen netwerk: later opnieuw
+  }
+  if(changed){ await reload(); if(curList==="kaart") drawBigMap(); if(current) { const w=wines.find(x=>x.id===current.id); if(w) showDetail(w,true); } }
+}
+
 /* leerinfo ophalen voor een wijn; werkt ook door als je al hebt opgeslagen */
 function startInfo(id, fields){
   if (pending.has(id)) return pending.get(id);
-  const p = gemini(promptInfo(fields), [], 60000).then(cleanInfo).then(async info => {
+  const p = gemini(promptInfo(fields), [], 60000).then(cleanInfo).then(info=>withLoc(info, fields)).then(async info => {
     if (id===draftId && $("#formSheet").classList.contains("open")) learn = info;
     const saved = await dbGet(id);
     if (saved) { saved.info = info; await dbPut(saved); await reload(); if (current?.id===id) showDetail(saved, true); if (curList==="kaart") drawBigMap(); if (curList==="stats") drawStats(); }

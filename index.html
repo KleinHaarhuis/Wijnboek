@@ -590,7 +590,7 @@ Antwoord met ALLEEN JSON:
 "quiz":[{"vraag":"","antwoord":""},{"vraag":"","antwoord":""},{"vraag":"","antwoord":""}],
 "locatie":{"lat":0,"lon":0,"plaats":"echte plaatsnaam: het dorp van de producent, anders de bekendste plaats van de appellatie"},
 "jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best"}}
-Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken). Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".
+Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken). Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen oogstjaren die al achter ons liggen (tot en met ${new Date().getFullYear()-1}), nooit toekomstige jaren. Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".
 Context: ${SDEN3}`;
 }
 
@@ -598,9 +598,10 @@ function promptVintage(w){
   return `Je bent een wijndocent voor een Nederlandse cursist. Geef jaargang-informatie over deze wijn:
 naam: ${w.naam}\nproducent: ${w.producent}\njaar: ${w.jaar}\nland: ${w.land}\nregio: ${w.regio}\nappellatie: ${w.appellatie}\ntype: ${w.type}
 Antwoord met ALLEEN JSON: {"jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best"}}
-Regels: Nederlands. Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".`;
+Regels: Nederlands. Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen oogstjaren die al achter ons liggen (tot en met ${new Date().getFullYear()-1}), nooit toekomstige jaren. Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".`;
 }
-const cleanVintage = j => { const v=j?.jaargang||j||{}; const goed=(v.goed||[]).filter(x=>x?.jaar).slice(0,6).map(x=>({jaar:String(x.jaar),waarom:x.waarom||""}));
+const okYear = y => { const n=+String(y||"").trim(); return /^\d{4}$/.test(String(y||"").trim()) && n>=1900 && n<new Date().getFullYear(); };
+const cleanVintage = j => { const v=j?.jaargang||j||{}; const goed=(v.goed||[]).filter(x=>okYear(x?.jaar)).slice(0,6).map(x=>({jaar:String(x.jaar),waarom:x.waarom||""}));
   return (v.ditJaar||goed.length||v.drinken) ? {ditJaar:v.ditJaar||"", oordeel:["top","goed","wisselend","zwak"].includes(v.oordeel)?v.oordeel:"", goed, drinken:v.drinken||""} : null; };
 const vPending=new Set();
 async function startVintage(w){
@@ -611,7 +612,7 @@ async function startVintage(w){
 }
 const OORDEEL={top:"🌟 topjaar",goed:"👍 goed jaar",wisselend:"〰️ wisselend jaar",zwak:"👎 zwak jaar"};
 function vintageHTML(w){
-  const v=w.info?.jaargang, busy=vPending.has(w.id);
+  const v0=w.info?.jaargang, v=v0&&!v0.leeg?{...v0,goed:(v0.goed||[]).filter(g=>okYear(g.jaar))}:v0, busy=vPending.has(w.id);
   if(!v||v.leeg) return `<div class="sec"><h3>📅 Jaargangen</h3>${busy?`<p><span class="spin"></span>Jaargangen worden opgehaald…</p>`:`${v?.leeg?`<p class="note">Hier was niets betrouwbaars over te vinden.</p>`:""}<button class="btn ghost" id="vintBtn" ${getKey()?"":"disabled"}>📅 ${v?.leeg?"Probeer opnieuw":"Haal goede jaren op"}</button>`}</div>`;
   return `<div class="sec"><h3>📅 Jaargangen</h3>
     ${w.jaar&&(v.ditJaar||v.oordeel)?`<p><b>${esc(w.jaar)}${v.oordeel?` · ${OORDEEL[v.oordeel]}`:""}</b>${v.ditJaar?`<br>${esc(v.ditJaar)}`:""}</p>`:""}

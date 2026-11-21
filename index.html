@@ -317,7 +317,7 @@
     <div id="pfBody"></div>
     <div class="row" style="margin-top:22px"><button class="btn p" id="pfSave">Opslaan</button></div>
     <div class="status" id="pfStatus"></div>
-    <p class="note">Tik aan wat je proeft; alles is optioneel. Aroma's volgen de indeling van het aromawiel van Lotte Wijn. Na het opslaan maakt de app er een lopende proefnotitie van.</p>
+    <p class="note">Tik aan wat je proeft; alles is optioneel. Schalen volgens de WSET-proefmethode niveau 3; aroma's volgens het aromawiel van Lotte Wijn. Na het opslaan maakt de app er een lopende proefnotitie van.</p>
   </div>
 </div>
 
@@ -1122,9 +1122,10 @@ $("#cYes").onclick=async()=>{ $("#confirm").classList.remove("open"); if(!curren
 
 /* ---------- proefformulier ---------- */
 const PFK={
-  wit:["waterwit","groengeel","citroengeel","strogeel","goudgeel","amber"],
-  rose:["bleekroze","zalmroze","framboosroze","oranjeroze"],
-  rood:["paars","robijnrood","granaatrood","steenrood","bruinrood"]};
+  wit:["groengeel","citroengeel","goudgeel","ambergeel","bruin"],
+  rose:["roze","zalmroze","oranje"],
+  rood:["paars","robijnrood","granaatrood","bruinrood","bruin"]};
+const PF5=["laag","gemiddeld(-)","gemiddeld","gemiddeld(+)","hoog"], PFI=["licht","gemiddeld(-)","gemiddeld","gemiddeld(+)","sterk"];
 const PFW=[
  ["Fruit","#b8323a",[["Zwart fruit",["braam","aalbes","zwarte kers","pruim","blauwe bes"]],["Rood fruit",["veenbes","rode bes","granaatappel","aardbei","kers","framboos","rode pruim"]],
    ["Pitfruit",["appel","peer","muskaatdruif"]],["Steenfruit",["nectarine/perzik","abrikoos","pruim"]],["Tropisch fruit",["ananas","mango","kiwi","meloen","lychee","passievrucht","banaan","kokos"]],
@@ -1152,12 +1153,17 @@ function pfWheel(){
   el.querySelectorAll("[data-pp]").forEach(b=>b.onclick=()=>{ pfPath=b.dataset.pp?[b.dataset.pp]:[]; pfWheel(); });
   el.querySelectorAll("[data-ar]").forEach(b=>b.onclick=()=>{ const v=b.dataset.ar,a=pfVal.aroma||[]; pfVal.aroma=a.includes(v)?a.filter(x=>x!==v):[...a,v]; pfWheel(); });
 }
-function pfKind(w){ return w?.type==="Rood"?"rood":w?.type==="Rosé"?"rose":"wit"; }
-function pfDef(w){ const k=pfKind(w); return [
-  ["Uiterlijk",[["kleur","Kleur",k==="wit"&&w?.type!=="Wit"&&w?.type!=="Mousserend"?[...PFK.wit,...PFK.rood]:PFK[k]],["kint","Intensiteit",["bleek","gemiddeld","diep"]],["helder","Helderheid",["helder","iets troebel","troebel"]],["overig","Overig",["tranen","bubbels","depot","wijnsteen"],1]]],
-  ["Geur",[["zuiver","Zuiverheid",["schoon","onzuiver (bijv. kurk)"]],["gint","Intensiteit",["zwak","gemiddeld","uitgesproken"]],["aroma","Aroma's",null,1]]],
-  ["Smaak",[["zoet","Zoetgehalte",["droog","halfzoet","zoet"]],["zuur","Zuurgehalte",["weinig","gemiddeld","veel"]],["zuurst","Zuur voelt",["vlak","soepel","strak"]],["alc","Alcohol",["laag","gemiddeld","hoog"]],
-    ...(k==="wit"&&w?.type==="Wit"?[]:[["tan","Tannine",["zacht","stevig","stroef"]]]),["mond","Mondgevoel",["licht","middelzwaar","vol"]],["afdr","Afdronk",["kort","middellang","lang"]]]]]; }
+function pfKind(w){ return w?.type==="Rood"?"rood":w?.type==="Rosé"?"rose":w?.type==="Wit"||w?.type==="Mousserend"?"wit":"alle"; }
+function pfDef(w){ const k=pfKind(w), t=w?.type, kl=k==="alle"?[...PFK.wit,...PFK.rose,...PFK.rood.filter(x=>x!=="bruin")]:PFK[k];
+  return [
+  ["Uiterlijk",[["helder","Helderheid",["helder","troebel"]],["kint","Intensiteit",["licht","gemiddeld","diep"]],["kleur","Kleur",kl],["overig","Andere kenmerken",["tranen","bezinksel","tinteling","mousse"],1]]],
+  ["Geur",[["zuiver","Conditie",["zuiver","onzuiver (fout?)"]],["gint","Intensiteit",PFI],["aroma","Aroma's",null,1]]],
+  ["Smaak",[["zoet","Zoetheid",["droog","iets zoet","halfdroog","halfzoet","zoet","zeer zoet"]],["zuur","Zuur",PF5],
+    ...(t==="Wit"||t==="Mousserend"?[]:[["tan","Tannine",PF5],["tanaard","Tannine is",["rijp/zacht","onrijp/groen","fijn","grof"],1]]),
+    ["alc","Alcohol",["laag","gemiddeld","hoog"]],["body","Body",["licht","gemiddeld(-)","gemiddeld","gemiddeld(+)","vol"]],
+    ...(t==="Mousserend"?[["mousse","Mousse",["fijn","romig","agressief"]]]:[]),
+    ["mond","Mondgevoel",["strak","soepel","rond","vlak","fris","fluweelzacht","romig","vettig","stroef","warm"],1],
+    ["smint","Smaakintensiteit",PFI],["afdr","Afdronk",["kort","gemiddeld(-)","gemiddeld","gemiddeld(+)","lang"]]]]]; }
 let pfWine=null, pfVal={};
 function chipsHTML(key,opts,multi){ const v=pfVal[key]; return `<div class="pchips">${opts.map(o=>`<button class="pchip ${multi?(v||[]).includes(o)?"on":"":v===o?"on":""}" data-k="${key}" data-v="${esc(o)}" data-m="${multi?1:""}">${esc(o)}</button>`).join("")}</div>`; }
 function pfDraw(){
@@ -1175,24 +1181,22 @@ function openProef(w){ pfWine=w; pfVal=JSON.parse(JSON.stringify(w.proef||{})); 
   $("#pfWine").textContent=[w.naam||"Wijn",w.jaar,w.type].filter(Boolean).join(" · "); pfDraw(); status("#pfStatus","");
   const sh=$("#proefSheet"); sh.classList.add("open"); sh.scrollTop=0; }
 function pfAroma(p){ return [...(p.aroma||[]),...(p.aromaEigen||"").split(",").map(x=>x.trim()).filter(Boolean)]; }
-function pfLocalText(p){ const A=pfAroma(p), S=[];
-  const u=[p.kleur,p.kint&&p.kint+" van kleur",p.helder,...(p.overig||[])].filter(Boolean); if(u.length) S.push(cap(u.join(", "))+".");
-  const g=[p.zuiver&&(p.zuiver.startsWith("schoon")?"Schone geur":"Onzuivere geur"),p.gint&&(p.gint==="uitgesproken"?"uitgesproken":p.gint==="zwak"?"zwak":"gemiddeld intens")].filter(Boolean).join(", ");
-  if(g||A.length) S.push((g||"Geur")+(A.length?" met "+A.join(", "):"")+".");
-  const sm=[p.zoet,p.zuur&&(p.zuur+" zuur"+(p.zuurst?" ("+p.zuurst+")":"")),!p.zuur&&p.zuurst&&p.zuurst+" zuur",p.alc&&(p.alc+" alcohol"),p.tan&&(p.tan+"e tannine"),p.mond&&(p.mond==="vol"?"vol":p.mond),p.afdr&&(p.afdr+"e afdronk")].filter(Boolean);
-  if(sm.length) S.push("In de mond "+sm.join(", ")+".");
-  const o=[p.oordeel&&("Oordeel: "+p.oordeel),p.ontw].filter(Boolean); if(o.length) S.push(cap(o.join(", "))+".");
-  if(p.bij) S.push("Lekker bij "+p.bij+"."); if(p.moment) S.push("Moment: "+p.moment+"."); if(p.pers) S.push(p.pers);
+function pfLocalText(p){ const A=pfAroma(p), S=[], j=x=>Array.isArray(x)?x.join(", "):x||"";
+  const u=[p.helder,p.kleur&&(p.kint?p.kint+" "+p.kleur:p.kleur),!p.kleur&&p.kint&&p.kint+" van kleur",j(p.overig)].filter(Boolean); if(u.length) S.push(cap(u.join(", "))+".");
+  const g=[p.zuiver&&(p.zuiver==="zuiver"?"Zuivere geur":"Onzuivere geur"),p.gint&&("intensiteit "+p.gint)].filter(Boolean).join(", ");
+  if(g||A.length) S.push((g||"Geur")+(A.length?", met "+A.join(", "):"")+".");
+  const sm=[p.zoet,p.zuur&&("zuur "+p.zuur),p.tan&&("tannine "+p.tan+(p.tanaard?.length?" ("+j(p.tanaard)+")":"")),p.alc&&("alcohol "+p.alc),p.body&&("body "+p.body),p.mousse&&("mousse "+p.mousse),p.mond?.length&&("mondgevoel "+j(p.mond)),p.smint&&("smaakintensiteit "+p.smint),p.afdr&&("afdronk "+p.afdr)].filter(Boolean);
+  if(sm.length) S.push("Smaak: "+sm.join(", ")+".");
   return S.join(" "); }
 function cap(t){ return t?t[0].toUpperCase()+t.slice(1):t; }
 function pfFilled(p){ return p && Object.entries(p).some(([k,v])=>k!=="tekst"&&k!=="datum"&&(Array.isArray(v)?v.length:v)); }
-const PFL={kleur:"Kleur",kint:"Kleurintensiteit",helder:"Helderheid",overig:"Overig",zuiver:"Zuiverheid",gint:"Geurintensiteit",zoet:"Zoet",zuur:"Zuur",zuurst:"Zuur voelt",alc:"Alcohol",tan:"Tannine",mond:"Mondgevoel",afdr:"Afdronk",oordeel:"Oordeel",ontw:"Ontwikkeling",bij:"Lekker bij",moment:"Moment",pers:"Persoonlijk"};
+const PFL={helder:"Helderheid",kint:"Kleurintensiteit",kleur:"Kleur",overig:"Andere kenmerken",zuiver:"Conditie",gint:"Geurintensiteit",zoet:"Zoetheid",zuur:"Zuur",tan:"Tannine",tanaard:"Tannine is",alc:"Alcohol",body:"Body",mousse:"Mousse",mond:"Mondgevoel",smint:"Smaakintensiteit",afdr:"Afdronk",zuurst:"Zuur voelt",oordeel:"Oordeel",ontw:"Ontwikkeling",bij:"Lekker bij"};
 function proefHTML(w){
   if((w.list||"gedronken")!=="gedronken") return "";
   const p=w.proef;
   if(!pfFilled(p)) return `<div class="sec"><h3>📝 Proefformulier</h3><p class="note">Leg vast wat je ziet, ruikt en proeft, zoals op de cursus.</p><button class="btn p" id="pfOpen">Proefformulier invullen</button></div>`;
   const rows=Object.keys(PFL).filter(k=>Array.isArray(p[k])?p[k].length:p[k]).map(k=>`<dt>${PFL[k]}</dt><dd>${esc(Array.isArray(p[k])?p[k].join(", "):p[k])}</dd>`);
-  const A=pfAroma(p); if(A.length) rows.splice(Math.min(rows.length,6),0,`<dt>Aroma's</dt><dd>${esc(A.join(", "))}</dd>`);
+  const A=pfAroma(p); if(A.length) rows.splice(Math.min(rows.length,5),0,`<dt>Aroma's</dt><dd>${esc(A.join(", "))}</dd>`);
   return `<div class="sec"><h3>📝 Proefformulier</h3>${p.tekst&&p.tekst!==w.mijn?.notitie?`<p>${esc(p.tekst)}</p>`:p.tekst?`<p class="note">De proefnotitie staat hierboven bij Jouw ervaring.</p>`:""}
     <details><summary class="note" style="cursor:pointer">Alle antwoorden</summary><dl class="pfsum">${rows.join("")}</dl></details>
     <div class="row" style="margin-top:12px"><button class="btn" id="pfOpen">Bewerken</button><button class="btn ghost" id="pfRedo" ${getKey()?"":"disabled"}>✨ Notitie opnieuw</button></div>
@@ -1201,7 +1205,7 @@ function proefHTML(w){
 async function pfAiText(w,p){
   const local=pfLocalText(p); if(!getKey()) return local;
   const data={...p}; delete data.tekst; delete data.datum; data.aroma=pfAroma(p); delete data.aromaEigen;
-  const r=await gemini(`Je helpt een cursist van de Nederlandse wijnopleiding SDEN 3. Schrijf van zijn ingevulde proefformulier een korte, lopende proefnotitie in het Nederlands, in de volgorde van het formulier: uiterlijk, geur, smaak. Gebruik vaktaal zoals op de cursus, 3 tot 5 zinnen, schrijf in de ik-vorm of neutraal. Gebruik ALLEEN wat hieronder is ingevuld; verzin geen aroma's of eigenschappen. Wijn: ${[w.naam,w.jaar,w.type].filter(Boolean).join(", ")}. Antwoorden (JSON): ${JSON.stringify(data)}. Geef alleen JSON: {"tekst":"..."}`,[],45000);
+  const r=await gemini(`Je helpt een cursist van de Nederlandse wijnopleiding SDEN 3. Schrijf van zijn ingevulde proefformulier een korte, lopende proefnotitie in het Nederlands, in de volgorde van het formulier: uiterlijk, geur, smaak. Gebruik vaktaal zoals op de cursus (de schalen volgen de WSET-proefmethode niveau 3, bijv. gemiddeld(+)), maar schrijf het natuurlijk uit (bijv. "vrij hoog zuur"), 3 tot 5 zinnen, schrijf in de ik-vorm of neutraal. Gebruik ALLEEN wat hieronder is ingevuld; verzin geen aroma's of eigenschappen. Wijn: ${[w.naam,w.jaar,w.type].filter(Boolean).join(", ")}. Antwoorden (JSON): ${JSON.stringify(data)}. Geef alleen JSON: {"tekst":"..."}`,[],45000);
   return (r&&typeof r.tekst==="string"&&r.tekst.trim())||local;
 }
 async function pfStore(w,p,statusId){

@@ -175,6 +175,34 @@
   .banner.show{display:block}
   .banner button{margin-top:8px}
   a{color:var(--wine)}
+  .bottomnav button{font-size:.64rem;min-width:0;position:relative}
+  .bottomnav .dot{position:absolute;top:4px;right:calc(50% - 16px);width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card);display:none}
+  .bottomnav .dot.show{display:block}
+  .pill{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+  .pill.nu{background:color-mix(in srgb,var(--ok) 16%,var(--card));color:var(--ok)}
+  .pill.laatst,.pill.over{background:var(--bad-bg);color:var(--bad)}
+  .pill.jong{background:var(--warn-bg);color:var(--warn)}
+  .pill.hi{background:color-mix(in srgb,var(--ok) 16%,var(--card));color:var(--ok)}
+  .pill.mid{background:color-mix(in srgb,var(--gold) 18%,var(--card));color:var(--warn)}
+  .pill.lo{background:var(--bad-bg);color:var(--bad)}
+  .kelsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 4px}
+  .kelsum div{background:var(--card);border-radius:14px;padding:10px 6px;text-align:center;box-shadow:var(--shadow)}
+  .kelsum b{display:block;font-family:var(--serif);font-weight:500;font-size:1.3rem;color:var(--wine)}
+  .kelsum span{font-size:.72rem;color:var(--muted);font-weight:600}
+  .cnt{display:flex;align-items:center;gap:10px}
+  .cnt button{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:1.2rem;cursor:pointer}
+  .cnt b{font-family:var(--serif);font-size:1.4rem;min-width:30px;text-align:center}
+  .tip{border-top:1px solid var(--line);padding:12px 0}
+  .tip:first-child{border-top:0;padding-top:4px}
+  .tip .h{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .tip .h b{font-family:var(--serif);font-weight:500;font-size:1.02rem;line-height:1.25}
+  .tip .btn{padding:8px 12px;font-size:.85rem;margin-top:8px}
+  .chat{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+  .chat .m{padding:9px 12px;border-radius:14px;max-width:88%;font-size:.93rem;line-height:1.45}
+  .chat .u{align-self:flex-end;background:var(--wine);color:var(--on);border-bottom-right-radius:4px}
+  .chat .a{align-self:flex-start;background:var(--soft);border-bottom-left-radius:4px}
+  .qchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+  .qchips button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 11px;font-size:.8rem;cursor:pointer;text-align:left}
 </style>
 </head>
 <body>
@@ -186,6 +214,7 @@
 <div class="wrap">
   <div class="banner" id="keyBanner" style="margin-top:14px">Stel eerst je gratis Gemini-sleutel in om wijnen automatisch te laten herkennen.<br><button class="btn p" id="keyBannerBtn">Instellen</button></div>
   <div id="listView">
+    <div id="kelTop"></div>
     <div class="search"><input id="q" type="search" placeholder="Zoek op naam, land, druif…"></div>
     <div id="list" class="list"></div>
     <div id="empty" class="empty" style="display:none">
@@ -199,13 +228,16 @@
     <p class="note" id="mapNote"></p>
   </div>
   <div id="statsView" style="display:none"></div>
+  <div id="sommView" style="display:none"></div>
 </div>
 <button class="fab" id="addBtn">＋ Wijn</button>
 <nav class="bottomnav">
   <button data-list="gedronken" class="on"><span class="ic">🍷</span>Gedronken</button>
   <button data-list="proberen"><span class="ic">⭐</span>Proberen</button>
+  <button data-list="kelder"><span class="ic">🍾</span>Kelder<i class="dot" id="kelDot"></i></button>
+  <button data-list="somm"><span class="ic">🤵</span>Sommelier</button>
   <button data-list="kaart"><span class="ic">🗺️</span>Kaart</button>
-  <button data-list="stats"><span class="ic">📊</span>Mijn leren</button>
+  <button data-list="stats"><span class="ic">📊</span>Leren</button>
 </nav>
 
 <!-- Toevoegen / bewerken -->
@@ -224,7 +256,8 @@
     <div class="status" id="status"></div>
 
     <label>Lijst</label>
-    <select id="f_list"><option value="gedronken">Gedronken</option><option value="proberen">Wil ik proberen</option></select>
+    <select id="f_list"><option value="gedronken">Gedronken</option><option value="proberen">Wil ik proberen</option><option value="kelder">In mijn kelder (in huis)</option></select>
+    <div id="aantalRow" style="display:none"><label>Aantal flessen</label><input id="f_aantal" type="number" min="1" inputmode="numeric" value="1"></div>
     <label>Naam van de wijn</label><input id="f_naam" placeholder="bijv. Château Haut-Bages Libéral">
     <div class="row">
       <div><label>Producent</label><input id="f_producent"></div>
@@ -295,7 +328,7 @@
       </div>
       <div class="status" id="b_status"></div>
     </div>
-    <p class="note" style="text-align:center;margin-top:16px">Versie 3 · kaart © OpenStreetMap-bijdragers</p>
+    <p class="note" style="text-align:center;margin-top:16px">Versie 5 · kaart © OpenStreetMap-bijdragers</p>
   </div>
 </div>
 
@@ -355,11 +388,13 @@ async function reload(){
 document.querySelectorAll(".bottomnav button").forEach(b => b.onclick = () => setTab(b.dataset.list));
 function setTab(l){
   curList=l; document.querySelectorAll(".bottomnav button").forEach(x=>x.classList.toggle("on",x.dataset.list===l));
-  $("#listView").style.display = (l==="gedronken"||l==="proberen") ? "" : "none";
+  $("#listView").style.display = isList(l) ? "" : "none";
+  $("#sommView").style.display = l==="somm" ? "" : "none";
+  $("#addBtn").style.display = l==="somm" ? "none" : "";
   $("#mapView").style.display = l==="kaart" ? "" : "none";
   $("#statsView").style.display = l==="stats" ? "" : "none";
   window.scrollTo({top:0});
-  if (l==="kaart") drawBigMap(); else if (l==="stats") drawStats(); else render();
+  if (l==="kaart") drawBigMap(); else if (l==="stats") drawStats(); else if (l==="somm") drawSomm(); else render();
 }
 $("#q").oninput = render;
 const stars = n => n ? "★".repeat(n)+"☆".repeat(5-n) : "";
@@ -381,10 +416,14 @@ function drawHeader(){
 
 function render(){
   drawHeader();
-  if (curList!=="gedronken" && curList!=="proberen") return;
+  drawKelDot();
+  $("#kelTop").innerHTML = curList==="kelder" ? kelTopHTML() : "";
+  bindKelTop();
+  if (!isList(curList)) return;
   const q = $("#q").value.trim().toLowerCase();
-  const items = wines.filter(w => (w.list||"gedronken")===curList).filter(w => !q ||
+  let items = wines.filter(w => (w.list||"gedronken")===curList).filter(w => !q ||
     [w.naam,w.producent,w.land,w.regio,w.appellatie,(w.druiven||[]).join(" "),w.type].join(" ").toLowerCase().includes(q));
+  if (curList==="kelder") items = items.sort((a,b)=>SORD[dstat(a).k]-SORD[dstat(b).k] || (dw(a)?.tot||9999)-(dw(b)?.tot||9999));
   $("#list").innerHTML = items.map(w => `
     <button class="wine" data-id="${esc(w.id)}" style="--tc:${TCOL[w.type]||"var(--wine)"}">
       <div class="ph">${w.photos?.[0]?`<img src="${blobURL(w.photos[0])}" alt="">`:"🍷"}</div>
@@ -393,10 +432,11 @@ function render(){
         <div class="pr">${esc([w.producent,w.jaar].filter(Boolean).join(" · "))}</div>
         <div class="s">${flag(w.land)} ${esc([w.regio,w.land].filter(Boolean).join(", "))}</div>
         ${(w.druiven||[]).length?`<span class="tag">🍇 ${esc(w.druiven.slice(0,2).join(", "))}</span>`:""}
-        <div class="bottom">${w.mijn?.score?`<span class="score"><i>★</i>${w.mijn.score}.0</span>`:`<span class="note">${w.list==="proberen"?"op je lijstje":"nog geen score"}</span>`}<span class="ar">${aromaIcons(w)}</span></div>
+        ${w.list==="kelder"?`<div class="row" style="flex-wrap:wrap;gap:5px;flex:none">${pillHTML(w)}<span class="pill">${aantalOf(w)}× in huis</span></div>`:""}
+        <div class="bottom">${w.mijn?.score&&w.list!=="kelder"?`<span class="score"><i>★</i>${w.mijn.score}.0</span>`:w.list!=="gedronken"&&matchOf(w)?matchPill(matchOf(w)):`<span class="note">${w.list==="proberen"?"op je lijstje":w.list==="kelder"?"":"nog geen score"}</span>`}<span class="ar">${aromaIcons(w)}</span></div>
       </div>
     </button>`).join("");
-  $("#emptyText").innerHTML = q ? "Niets gevonden." : curList==="proberen" ? "Nog niets op je lijstje.<br>Zie je een fles die je wilt proberen? Voeg hem toe en kies <b>Wil ik proberen</b>." : "Nog geen wijnen hier.<br>Tik op <b>＋ Wijn</b> en maak een foto van het etiket.";
+  $("#emptyText").innerHTML = q ? "Niets gevonden." : curList==="kelder" ? "Nog geen flessen in je kelder.<br>Tik op <b>＋ Wijn</b> en kies <b>In mijn kelder</b>, of tik bij een wijn op je lijstje op <b>🍾 Gekocht</b>." : curList==="proberen" ? "Nog niets op je lijstje.<br>Zie je een fles die je wilt proberen? Voeg hem toe en kies <b>Wil ik proberen</b>." : "Nog geen wijnen hier.<br>Tik op <b>＋ Wijn</b> en maak een foto van het etiket.";
   $("#empty").style.display = items.length ? "none" : "block";
   document.querySelectorAll(".wine").forEach(el => el.onclick = () => showDetail(wines.find(w=>w.id===el.dataset.id)));
 }
@@ -435,7 +475,7 @@ const hasLoc = w => w.info?.locatie && isFinite(+w.info.locatie.lat) && isFinite
 function tiles(map){ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map); }
 const PINCOL = { Rood:"#a8687b", Wit:"#c9a84f", "Rosé":"#e3a9b5", Mousserend:"#d9c476", Zoet:"#c9963f", Versterkt:"#7a5a3c" };
 const pin = (w) => L.divIcon({className:"", iconSize:[34,44], iconAnchor:[17,42], popupAnchor:[0,-38],
-  html:`<div class="pin" style="background:${PINCOL[w.type]||"#a8687b"}"><span>${w.list==="proberen"?"★":"🍷"}</span></div>`});
+  html:`<div class="pin" style="background:${PINCOL[w.type]||"#a8687b"}"><span>${w.list==="proberen"?"★":w.list==="kelder"?"🍾":"🍷"}</span></div>`});
 let bigMap=null, bigLayer=null;
 function drawBigMap(){
   if (!window.L) { $("#mapNote").textContent="De kaart kan niet laden zonder internet."; return; }
@@ -447,13 +487,252 @@ function drawBigMap(){
     const ll=[+w.info.locatie.lat,+w.info.locatie.lon]; pts.push(ll);
     const m=L.marker(ll,{icon:pin(w)}).addTo(bigLayer);
     const div=document.createElement("div");
-    div.innerHTML=`<b>${esc(w.naam||"Wijn")}</b><br>${esc(w.info.locatie.plaats||[w.regio,w.land].filter(Boolean).join(", "))}${w.list==="proberen"?"<br><i>wil ik proberen</i>":""}<br><button>Bekijk</button>`;
+    div.innerHTML=`<b>${esc(w.naam||"Wijn")}</b><br>${esc(w.info.locatie.plaats||[w.regio,w.land].filter(Boolean).join(", "))}${w.list==="proberen"?"<br><i>wil ik proberen</i>":w.list==="kelder"?"<br><i>in je kelder</i>":""}<br><button>Bekijk</button>`;
     div.querySelector("button").onclick=()=>{ bigMap.closePopup(); showDetail(w); };
     m.bindPopup(div);
   });
   if (pts.length===1) bigMap.setView(pts[0],7); else if (pts.length) bigMap.fitBounds(pts,{padding:[30,30],maxZoom:8});
   const zonder = wines.length - pts.length;
   $("#mapNote").textContent = pts.length ? `${pts.length} ${pts.length===1?"wijn":"wijnen"} op de kaart.${zonder?` ${zonder} zonder locatie: open ze en tik op "Haal leerinfo op".`:""}` : "Nog geen wijnen met een locatie. Nieuwe wijnen krijgen die automatisch.";
+}
+
+/* ---------- kelder ---------- */
+const isList = l => l==="gedronken"||l==="proberen"||l==="kelder";
+const YNOW = () => new Date().getFullYear();
+const aantalOf = w => Math.max(0, parseInt(w.aantal)||1);
+/* drinkvenster: uit de jaartallen, of anders uit de tekst ("nu tot 2030") */
+function dw(w){
+  const v=w.info?.jaargang; if(!v||v.leeg) return null;
+  let van=+v.drinkVan||0, tot=+v.drinkTot||0;
+  if(!van&&!tot&&v.drinken){ const ys=(String(v.drinken).match(/\b(19|20)\d{2}\b/g)||[]).map(Number);
+    if(ys.length){ tot=Math.max(...ys); if(ys.length>1) van=Math.min(...ys); }
+    if(!van&&/\b(nu|direct|meteen|vanaf nu)\b/i.test(v.drinken)) van=YNOW(); }
+  if(van&&tot&&van>tot) [van,tot]=[tot,van];
+  return van||tot ? {van,tot} : null;
+}
+const SORD={over:0,laatst:1,nu:2,jong:3,"?":4};
+function dstat(w){
+  const d=dw(w), Y=YNOW();
+  if(!d) return {k:"?",t:"Drinkvenster onbekend",ic:"❔"};
+  if(d.van && Y<d.van) return {k:"jong",t:`Nog wachten tot ${d.van}`,ic:"⏳"};
+  if(d.tot && Y>d.tot) return {k:"over",t:`Over zijn piek (tot ${d.tot})`,ic:"⚠️"};
+  if(d.tot && Y===d.tot) return {k:"laatst",t:"Laatste jaar: nu drinken!",ic:"⏰"};
+  return {k:"nu",t:`Op dronk${d.tot?` tot ${d.tot}`:""}`,ic:"🟢"};
+}
+const pillHTML = w => { const s=dstat(w); return `<span class="pill ${s.k==="?"?"":s.k}">${s.ic} ${esc(s.t)}</span>`; };
+const kelder = () => wines.filter(w=>w.list==="kelder");
+function drawKelDot(){ const d=$("#kelDot"); if(d) d.classList.toggle("show", kelder().some(w=>["over","laatst"].includes(dstat(w).k))); }
+function kelTopHTML(){
+  const K=kelder(); if(!K.length) return "";
+  const fl=K.reduce((a,w)=>a+aantalOf(w),0), st=K.map(dstat);
+  const nu=K.filter((w,i)=>st[i].k==="nu").reduce((a,w)=>a+aantalOf(w),0);
+  const urg=K.filter((w,i)=>["over","laatst"].includes(st[i].k));
+  const onb=K.filter((w,i)=>st[i].k==="?" && !vPending.has(w.id));
+  return `<div class="kelsum"><div><b>${fl}</b><span>${fl===1?"fles":"flessen"} in huis</span></div><div><b>${nu}</b><span>op dronk</span></div><div><b>${urg.reduce((a,w)=>a+aantalOf(w),0)}</b><span>moeten op</span></div></div>
+    ${urg.length?`<div class="banner show" style="margin-top:10px">⏰ <b>${urg.map(w=>esc(w.naam||"Een wijn")).join(", ")}</b> ${urg.length===1?"is":"zijn"} aan het eind van ${urg.length===1?"zijn":"hun"} drinkvenster. Tijd om open te trekken!</div>`:""}
+    ${onb.length?`<div class="sec" style="padding:12px 14px"><p class="note" style="margin:0 0 8px">Van ${onb.length} ${onb.length===1?"fles":"flessen"} weet de app nog niet wanneer ${onb.length===1?"hij":"ze"} op dronk ${onb.length===1?"is":"zijn"}.</p><button class="btn ghost" id="kelFetch" ${getKey()?"":"disabled"}>📅 Drinkvensters ophalen</button></div>`:""}
+    ${vPending.size?`<p class="note"><span class="spin"></span>Drinkvensters worden opgehaald…</p>`:""}`;
+}
+function bindKelTop(){ const b=$("#kelFetch"); if(b) b.onclick=async()=>{ const todo=kelder().filter(w=>dstat(w).k==="?"&&!w.info?.jaargang?.leeg); for(const w of todo){ startVintage(w).catch(()=>{}); await sleep(400); } if(!todo.length) toast("Voor deze wijnen is niets betrouwbaars te vinden."); render(); }; }
+function kelDetailHTML(w){
+  const s=dstat(w), d=dw(w);
+  return `<div class="sec"><h3>🍾 In je kelder</h3>
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <div class="cnt"><button id="kMin" aria-label="Eén minder">−</button><b id="kCnt">${aantalOf(w)}</b><button id="kPlus" aria-label="Eén meer">+</button><span class="note">${aantalOf(w)===1?"fles":"flessen"}</span></div>
+    </div>
+    <p style="margin:10px 0 4px">${pillHTML(w)}</p>
+    ${d?`<p class="note">Drinkvenster: ${d.van?d.van:"nu"} – ${d.tot||"?"}${w.info?.jaargang?.drinken?` · ${esc(w.info.jaargang.drinken)}`:""}</p>`:
+      vPending.has(w.id)?`<p class="note"><span class="spin"></span>Drinkvenster ophalen…</p>`:`<button class="btn ghost" id="kDw" style="margin-top:6px" ${getKey()?"":"disabled"}>📅 Drinkvenster ophalen</button>`}
+    <div class="row" style="margin-top:12px"><button class="btn p" id="kOpen">🍷 Fles opengetrokken</button></div>
+    <p class="note" style="margin-top:6px">Je schrijft dan meteen je proefnotitie; de fles gaat naar Gedronken${aantalOf(w)>1?" en er blijven er "+(aantalOf(w)-1)+" in je kelder":""}.</p></div>`;
+}
+function bindKelDetail(w){
+  const set=async n=>{ const k=await dbGet(w.id); if(!k) return; k.aantal=Math.max(1,n); await dbPut(k); await reload(); showDetail(wines.find(x=>x.id===w.id),true); };
+  const mi=$("#kMin"), pl=$("#kPlus"), op=$("#kOpen"), dv=$("#kDw"), tc=$("#toCellar");
+  if(mi) mi.onclick=()=>set(aantalOf(w)-1);
+  if(pl) pl.onclick=()=>set(aantalOf(w)+1);
+  if(dv) dv.onclick=()=>startVintage(w).catch(e=>toast("Ophalen lukte niet."));
+  if(op) op.onclick=()=>{ $("#detailSheet").classList.remove("open"); const today=new Date().toISOString().slice(0,10);
+    if(aantalOf(w)>1) openForm({...w, id:null, createdAt:null, aantal:undefined, list:"gedronken", fromCellar:w.id, mijn:{datum:today}});
+    else openForm({...w, list:"gedronken", aantal:undefined, mijn:{...(w.mijn||{}), datum:today}}); };
+  if(tc) tc.onclick=async()=>{ const k=await dbGet(w.id); if(!k) return; k.list="kelder"; k.aantal=1; await dbPut(k); await reload(); toast("In je kelder gezet 🍾"); setTab("kelder"); showDetail(wines.find(x=>x.id===w.id)); if(k.info && !k.info.jaargang) startVintage(k).catch(()=>{}); };
+}
+
+/* ---------- smaak & match (alleen op deze telefoon berekend) ---------- */
+const rated = () => wines.filter(w=>(w.list||"gedronken")==="gedronken" && w.mijn?.score);
+const avg = a => a.reduce((x,y)=>x+y,0)/a.length;
+const FEATS = [["druif",3],["regio",2],["land",1],["type",1]];
+const featVals = (w,f) => f==="druif" ? (w.druiven||[]).map(norm) : w[f] ? [norm(w[f])] : [];
+function matchOf(w){
+  const R=rated().filter(x=>x.id!==w.id); if(R.length<5) return null;
+  const M=avg(R.map(x=>x.mijn.score)); let num=2*M, den=2, best=null, hits=0;
+  for(const [f,wt] of FEATS) for(const v of featVals(w,f)){
+    const same=R.filter(x=>featVals(x,f).includes(v)); if(!same.length) continue;
+    const a=avg(same.map(x=>x.mijn.score)), n=Math.min(same.length,5); num+=wt*n*a; den+=wt*n; hits++;
+    const lab = f==="druif" ? (w.druiven||[]).find(d=>norm(d)===v) : w[f];
+    const sc=wt*n*(1+Math.abs(a-M)); if(!best||sc>best.sc) best={sc,txt:`Je gaf ${f==="type"?"je "+({Rood:"rode",Wit:"witte","Rosé":"rosé",Mousserend:"mousserende",Zoet:"zoete",Versterkt:"versterkte"}[lab]||String(lab).toLowerCase())+" wijnen":lab} gemiddeld ${a.toFixed(1).replace(".",",")} ★ (${same.length} ${same.length===1?"wijn":"wijnen"})`};
+  }
+  if(!hits) return null;
+  const pct=Math.round(Math.min(99,Math.max(1,(num/den-1)/4*100)));
+  return {pct, why:best.txt};
+}
+const matchCls = p => p>=75?"hi":p>=55?"mid":"lo";
+const matchPill = m => `<span class="pill ${matchCls(m.pct)}">💚 ${m.pct}% match</span>`;
+function matchDetailHTML(w){
+  const m=matchOf(w), n=rated().length;
+  if(!m) return n<5 ? `<div class="sec"><h3>💚 Past dit bij jou?</h3><p class="note">Geef minstens 5 gedronken wijnen sterren, dan berekent de app hoe goed een wijn bij jouw smaak past. Nu: ${n} van 5.</p></div>` : "";
+  return `<div class="sec"><h3>💚 Past dit bij jou?</h3><p style="display:flex;align-items:center;gap:10px"><b style="font-family:var(--serif);font-size:1.6rem;font-weight:500">${m.pct}%</b>${matchPill(m)}</p><p class="note">${esc(m.why)}. Berekend uit jouw eigen sterren.</p></div>`;
+}
+function tasteRows(f){
+  const R=rated(), g={};
+  R.forEach(w=>featVals(w,f).forEach((v,i)=>{ const lab=f==="druif"?w.druiven[i]:w[f]; (g[v]=g[v]||{lab,s:[]}).s.push(w.mijn.score); }));
+  return Object.values(g).map(x=>({lab:x.lab,a:avg(x.s),n:x.s.length})).sort((a,b)=>b.a-a.a||b.n-a.n);
+}
+function profileText(){
+  const R=rated(); if(!R.length) return "Nog geen beoordeelde wijnen; geef algemene, toegankelijke adviezen.";
+  const fmt=rows=>rows.slice(0,8).map(r=>`${r.lab} ${r.a.toFixed(1)}★ (${r.n})`).join(", ");
+  const top=[...R].sort((a,b)=>b.mijn.score-a.mijn.score).slice(0,5), low=[...R].sort((a,b)=>a.mijn.score-b.mijn.score).filter(w=>w.mijn.score<=2).slice(0,3);
+  const notes=R.filter(w=>w.mijn.notitie).slice(0,6).map(w=>`${w.naam} (${w.mijn.score}★): ${w.mijn.notitie.slice(0,140)}`);
+  return `Gemiddelde score ${avg(R.map(w=>w.mijn.score)).toFixed(1)} over ${R.length} wijnen (1-5 sterren).
+Druiven: ${fmt(tasteRows("druif"))}
+Landen: ${fmt(tasteRows("land"))}
+Soorten: ${fmt(tasteRows("type"))}
+Favorieten: ${top.map(w=>`${w.naam} ${w.jaar||""} (${w.mijn.score}★)`).join("; ")}
+${low.length?`Vond hij minder: ${low.map(w=>`${w.naam} (${w.mijn.score}★)`).join("; ")}`:""}
+${notes.length?`Eigen proefnotities: ${notes.join(" | ")}`:""}
+Algemene voorkeur: droge wijnen.`;
+}
+const kelderText = () => kelder().map(w=>`${w.id} | ${w.naam||"?"} ${w.jaar||""} | ${w.type||""} | ${(w.druiven||[]).join(", ")} | ${[w.regio,w.land].filter(Boolean).join(", ")} | ${aantalOf(w)}x | ${dstat(w).t}`).join("\n") || "(leeg)";
+
+/* ---------- sommelier ---------- */
+let scPhotos=[], scResult=null, paResult=null, chatLog=[];
+try{ chatLog=JSON.parse(LS.get("sommChat","[]"))||[]; }catch(e){ chatLog=[]; }
+function drawSomm(){
+  drawHeader();
+  const n=rated().length, likes=tasteRows("druif").filter(r=>r.a>=4).slice(0,4), lands=tasteRows("land").filter(r=>r.a>=4).slice(0,3), less=tasteRows("druif").filter(r=>r.a<=2.5).slice(0,3);
+  const fav=x=>`<span class="pill hi">💚 ${esc(x.lab)} ${x.a.toFixed(1).replace(".",",")}★</span>`;
+  const qs=[kelder().length?"Welke fles uit mijn kelder moet als eerste open?":"Welke wijn moet ik als volgende kopen?","Welke SDEN 3-wijnen moet ik nog proeven?", likes[0]?`Waarom vind ik ${likes[0].lab} zo lekker?`:"Hoe proef ik als een sommelier?"];
+  $("#sommView").innerHTML = `
+    <h2 class="viewtitle">Sommelier</h2>
+    ${getKey()?"":`<div class="banner show">De sommelier gebruikt je Gemini-sleutel. Stel die eerst in bij ⚙️.</div>`}
+    <div class="sec"><h3>👅 Jouw smaak</h3>
+      ${n<5?`<p class="note">Geef minstens 5 gedronken wijnen sterren, dan leert de app je smaak kennen en krijg je een persoonlijke match-score. Nu: ${n} van 5.</p>`:""}
+      ${likes.length||lands.length?`<div class="chips" style="margin-top:4px">${[...likes,...lands].map(fav).join("")}</div>`:n>=5?`<p class="note">Nog geen duidelijke favorieten.</p>`:""}
+      ${less.length?`<div class="chips">${less.map(x=>`<span class="pill lo">${esc(x.lab)} ${x.a.toFixed(1).replace(".",",")}★</span>`).join("")}</div>`:""}
+    </div>
+    <div class="sec"><h3>📷 Wijnkaart of schap scannen</h3>
+      <p class="note">In een restaurant of de winkel? Maak een foto van de wijnkaart of van het schap. De sommelier kiest wat bij jou past.</p>
+      <div class="thumbs" id="scThumbs" style="margin-top:10px"></div>
+      <div class="row"><div class="pick btn p">📷 Foto maken<input type="file" accept="image/*" capture="environment" id="scCam"></div><div class="pick btn">🖼️ Galerij<input type="file" accept="image/*" multiple id="scGal"></div></div>
+      <div class="row"><div><label>Wat eet je? (optioneel)</label><input id="scEten" placeholder="bijv. eendenborst"></div><div style="flex:0 0 110px"><label>Budget</label><input id="scBudget" placeholder="max €" inputmode="decimal"></div></div>
+      <div class="row" style="margin-top:12px"><button class="btn p" id="scGo">✨ Geef advies</button></div>
+      <div class="status" id="scStatus"></div><div id="scRes"></div>
+    </div>
+    <div class="sec"><h3>🍽️ Wat drink ik hierbij?</h3>
+      <p class="note">Typ een gerecht. De sommelier kijkt eerst in je kelder.</p>
+      <div class="row" style="margin-top:8px"><input id="paGerecht" placeholder="bijv. stoofvlees met friet" style="flex:2"><button class="btn p" id="paGo" style="flex:0 0 auto">Zoek</button></div>
+      <div class="status" id="paStatus"></div><div id="paRes"></div>
+    </div>
+    <div class="sec"><h3>💬 Vraag de sommelier</h3>
+      <p class="note">Hij kent je smaak, je kelder en je SDEN 3-lijst.</p>
+      <div class="chat" id="chat"></div>
+      <div class="qchips" id="qchips">${qs.map(q=>`<button>${esc(q)}</button>`).join("")}</div>
+      <div class="row"><textarea id="chIn" placeholder="Stel je vraag…" style="min-height:48px;flex:2"></textarea><button class="btn p" id="chGo" style="flex:0 0 auto;align-self:flex-end">Vraag</button></div>
+      <div class="status" id="chStatus"></div>
+      ${chatLog.length?`<button class="btn ghost" id="chClear" style="margin-top:8px;padding:6px 12px;font-size:.82rem">Gesprek wissen</button>`:""}
+      <p class="note" style="margin-top:10px">Adviezen komen van AI; controleer belangrijke feiten in je cursusboek.</p>
+    </div>`;
+  drawScThumbs(); drawScRes(); drawPaRes(); drawChat();
+  const add=async e=>{ const fs=[...(e.target.files||[])]; e.target.value=""; for(const f of fs.slice(0,4-scPhotos.length)){ let b; try{ b=(await shrink(f,1600))||f; }catch(_){ b=f; } scPhotos.push(b); } drawScThumbs(); };
+  $("#scCam").onchange=add; $("#scGal").onchange=add;
+  $("#scGo").onclick=scanAdvice; $("#paGo").onclick=pairAdvice; $("#paGerecht").onkeydown=e=>{ if(e.key==="Enter") pairAdvice(); };
+  $("#chGo").onclick=()=>ask($("#chIn").value);
+  $("#qchips").querySelectorAll("button").forEach(b=>b.onclick=()=>ask(b.textContent));
+  const cc=$("#chClear"); if(cc) cc.onclick=()=>{ chatLog=[]; LS.set("sommChat","[]"); drawSomm(); };
+}
+function drawScThumbs(){ const t=$("#scThumbs"); if(!t) return;
+  t.innerHTML=scPhotos.map((b,i)=>`<div class="thumb"><img src="${blobURL(b)}" alt="" style="height:110px"><button type="button" data-i="${i}" aria-label="Verwijder">×</button></div>`).join("");
+  t.querySelectorAll("button").forEach(b=>b.onclick=()=>{ scPhotos.splice(+b.dataset.i,1); drawScThumbs(); }); }
+async function scanAdvice(){
+  if(!getKey()) return status("#scStatus","Stel eerst je Gemini-sleutel in bij ⚙️.",true);
+  if(!scPhotos.length) return status("#scStatus","Maak eerst een foto van de wijnkaart of het schap.",true);
+  const eten=$("#scEten").value.trim(), bud=$("#scBudget").value.trim();
+  status("#scStatus",'<span class="spin"></span>De sommelier leest mee…');
+  const prompt=`Je bent een sommelier voor een Nederlandse wijnliefhebber die studeert voor SDEN 3 (Wijnbrevet). Op de foto('s) staat een wijnkaart van een restaurant, of een schap of flessen in een winkel. Lees de wijnen die je kunt lezen en kies de 3 tot 5 beste keuzes voor deze persoon.
+SMAAKPROFIEL:
+${profileText()}
+${eten?"Hij eet: "+eten:""}
+${bud?"Budget per fles (of glas als het een kaart per glas is): "+bud:""}
+Antwoord met ALLEEN JSON:
+{"soort":"wijnkaart|schap|flessen","gelezen":0,"tips":[{"naam":"zoals op de kaart","producent":"","jaar":"","land":"","regio":"","type":"Rood|Wit|Rosé|Mousserend|Zoet|Versterkt","druiven":[""],"prijs":"zoals vermeld, anders leeg","match":0,"waarom":"1-2 zinnen waarom dit bij hem past (en bij het eten als dat is genoemd)","leer":"kort: wat leert hij ervan voor SDEN 3, of leeg"}],"advies":"1 zin algemeen advies"}
+Regels: Nederlands. Alleen wijnen die echt op de foto staan; verzin niets. "gelezen" is het aantal wijnen dat je kon lezen. match is 0-100: hoe goed past het bij zijn smaak. Beste keuze eerst. Houd je aan het budget als dat is genoemd.
+Context: ${SDEN3}`;
+  try{ const r=await gemini(prompt, scPhotos, 90000, m=>status("#scStatus",'<span class="spin"></span>'+m));
+    scResult={tips:(r.tips||[]).filter(t=>t?.naam).slice(0,6), advies:r.advies||"", soort:r.soort||"", gelezen:+r.gelezen||0};
+    status("#scStatus", scResult.tips.length?"":"Ik kon geen wijnen lezen. Probeer een scherpere foto, recht van voren.", !scResult.tips.length); drawScRes();
+  }catch(e){ status("#scStatus",gemErr(e),true); }
+}
+function tipWine(t){ const types=["Rood","Wit","Rosé","Mousserend","Zoet","Versterkt"];
+  return {naam:t.naam||"", producent:t.producent||"", jaar:String(t.jaar||""), land:t.land||"", regio:t.regio||"", appellatie:"", type:types.includes(t.type)?t.type:"", druiven:(t.druiven||[]).filter(Boolean)}; }
+function drawScRes(){ const el=$("#scRes"); if(!el||!scResult) return;
+  el.innerHTML = scResult.tips.length ? `<div style="margin-top:12px">${scResult.gelezen?`<p class="note">${scResult.gelezen} wijnen gelezen${scResult.soort?" op de "+esc(scResult.soort):""}. Mijn keuzes:</p>`:""}
+    ${scResult.tips.map((t,i)=>{ const loc=matchOf(tipWine(t)); const pct=loc?loc.pct:Math.max(1,Math.min(99,+t.match||0));
+      return `<div class="tip"><div class="h"><div><b>${i===0?"🥇 ":""}${esc(t.naam)}</b><div class="note">${esc([t.producent,t.jaar,t.regio||t.land].filter(Boolean).join(" · "))}</div></div>${t.prijs?`<span class="pill">${esc(t.prijs)}</span>`:""}</div>
+        <div class="chips" style="margin-top:6px">${pct?matchPill({pct}):""}${t.type?`<span class="pill">${esc(t.type)}</span>`:""}${(t.druiven||[]).slice(0,2).map(d=>`<span class="pill">🍇 ${esc(d)}</span>`).join("")}</div>
+        <p style="margin:6px 0 0">${esc(t.waarom)}</p>${t.leer?`<p class="note" style="margin:4px 0 0">🎓 ${esc(t.leer)}</p>`:""}
+        <button class="btn ghost" data-add="${i}" ${t._added?"disabled":""}>${t._added?"✓ Op je lijstje":"⭐ Op mijn lijstje"}</button></div>`; }).join("")}
+    ${scResult.advies?`<p class="note" style="margin-top:8px">💡 ${esc(scResult.advies)}</p>`:""}</div>` : "";
+  el.querySelectorAll("[data-add]").forEach(b=>b.onclick=async()=>{ const t=scResult.tips[+b.dataset.add]; const w={id:newId(), list:"proberen", ...tipWine(t), photos:[], info:null, mijn:{notitie:t.prijs?`Gezien voor ${t.prijs}`:""}, createdAt:Date.now(), updatedAt:Date.now()};
+    await dbPut(w); t._added=1; await reload(); drawScRes(); toast("Op je lijstje gezet ⭐"); if(getKey()) startInfo(w.id, w).catch(()=>{}); });
+}
+async function pairAdvice(){
+  const g=$("#paGerecht").value.trim(); if(!g) return status("#paStatus","Typ eerst een gerecht.",true);
+  if(!getKey()) return status("#paStatus","Stel eerst je Gemini-sleutel in bij ⚙️.",true);
+  status("#paStatus",'<span class="spin"></span>Even nadenken…');
+  const prompt=`Je bent een sommelier voor een Nederlandse wijnliefhebber die studeert voor SDEN 3. Gerecht: ${g}
+KELDER (id | wijn | type | druiven | herkomst | aantal | drinkstatus):
+${kelderText()}
+SMAAKPROFIEL:
+${profileText()}
+Antwoord met ALLEEN JSON: {"uitKelder":[{"id":"exact id uit de kelder","waarom":"1 zin"}],"kopen":[{"stijl":"bijv. jonge Beaujolais-cru","waarom":"1 zin"}],"principe":"1-2 zinnen: het combinatieprincipe (bijv. zuren snijden door vet), leerzaam voor SDEN 3"}
+Regels: Nederlands. Kies 0-3 flessen uit de kelder, alleen als ze echt passen; geef voorrang aan flessen die op dronk zijn of hun piek bereiken. Geef 2 stijlen om te kopen.`;
+  try{ const r=await gemini(prompt,[],60000,m=>status("#paStatus",'<span class="spin"></span>'+m));
+    const ids=new Set(kelder().map(w=>w.id));
+    paResult={g, uit:(r.uitKelder||[]).filter(x=>ids.has(x?.id)).slice(0,3), kopen:(r.kopen||[]).filter(x=>x?.stijl).slice(0,3), principe:r.principe||""};
+    status("#paStatus",""); drawPaRes();
+  }catch(e){ status("#paStatus",gemErr(e),true); }
+}
+function drawPaRes(){ const el=$("#paRes"); if(!el||!paResult) return;
+  el.innerHTML=`<div style="margin-top:12px">
+    ${paResult.uit.length?`<p class="note" style="margin:0 0 4px">Uit je kelder bij <b>${esc(paResult.g)}</b>:</p>${paResult.uit.map(x=>{ const w=wines.find(y=>y.id===x.id); return w?`<div class="tip" style="cursor:pointer" data-id="${esc(w.id)}"><div class="h"><b>🍾 ${esc(w.naam||"Wijn")}${w.jaar?" "+esc(w.jaar):""}</b>${pillHTML(w)}</div><p style="margin:4px 0 0">${esc(x.waarom)}</p></div>`:""; }).join("")}`:`<p class="note">${kelder().length?"Niets uit je kelder past hier echt bij.":"Je kelder is nog leeg."}</p>`}
+    ${paResult.kopen.length?`<p class="note" style="margin:10px 0 4px">Of koop:</p><ul>${paResult.kopen.map(x=>`<li><b>${esc(x.stijl)}</b>: ${esc(x.waarom)}</li>`).join("")}</ul>`:""}
+    ${paResult.principe?`<p class="note">🎓 ${esc(paResult.principe)}</p>`:""}</div>`;
+  el.querySelectorAll("[data-id]").forEach(d=>d.onclick=()=>showDetail(wines.find(w=>w.id===d.dataset.id)));
+}
+function drawChat(){ const c=$("#chat"); if(!c) return;
+  c.innerHTML=chatLog.map(m=>`<div class="m ${m.r}">${esc(m.t).replace(/\n/g,"<br>")}</div>`).join("");
+  $("#qchips").style.display = chatLog.length ? "none" : ""; }
+let asking=false;
+async function ask(q){
+  q=String(q||"").trim(); if(!q||asking) return;
+  if(!getKey()) return status("#chStatus","Stel eerst je Gemini-sleutel in bij ⚙️.",true);
+  asking=true; chatLog.push({r:"u",t:q}); $("#chIn").value=""; drawChat(); status("#chStatus",'<span class="spin"></span>De sommelier denkt na…');
+  const hist=chatLog.slice(-10,-1).map(m=>(m.r==="u"?"Gijs: ":"Sommelier: ")+m.t).join("\n");
+  const prompt=`Je bent een vriendelijke, deskundige sommelier en wijndocent. Je praat met een Nederlandse wijnliefhebber die studeert voor SDEN 3 (Wijnbrevet). Antwoord in het Nederlands, kort en concreet (max. 120 woorden), zonder markdown. Gebruik zijn smaak en kelder waar dat helpt. Zeg het eerlijk als je iets niet zeker weet.
+SMAAKPROFIEL:
+${profileText()}
+KELDER:
+${kelderText()}
+GEPROEFD (laatste 25): ${wines.filter(w=>(w.list||"gedronken")==="gedronken").slice(0,25).map(w=>`${w.naam||"?"}${w.jaar?" "+w.jaar:""}${w.mijn?.score?" "+w.mijn.score+"★":""}`).join("; ")||"nog niets"}
+WIL HIJ PROBEREN: ${wines.filter(w=>w.list==="proberen").slice(0,15).map(w=>w.naam).join("; ")||"niets"}
+SDEN 3: ${SDEN3}
+${hist?"GESPREK TOT NU TOE:\n"+hist:""}
+Vraag: ${q}
+Antwoord met ALLEEN JSON: {"antwoord":""}`;
+  try{ const r=await gemini(prompt,[],60000,m=>status("#chStatus",'<span class="spin"></span>'+m)); chatLog.push({r:"a",t:String(r.antwoord||"Ik weet het even niet.")}); status("#chStatus",""); }
+  catch(e){ chatLog.pop(); $("#chIn").value=q; status("#chStatus",gemErr(e),true); }
+  chatLog=chatLog.slice(-30); LS.set("sommChat",JSON.stringify(chatLog)); asking=false;
+  if(curList==="somm"){ drawChat(); const cc=$("#chClear"); if(!cc) drawSomm(); $("#chat").lastElementChild?.scrollIntoView({block:"nearest",behavior:"smooth"}); }
 }
 
 /* ---------- sheets ---------- */
@@ -470,7 +749,9 @@ function openForm(w){
   $("#formTitle").textContent = editing ? "Wijn bewerken" : "Wijn toevoegen";
   F.forEach(k => $("#f_"+k).value = w?.[k] || "");
   $("#f_druiven").value = (w?.druiven||[]).join(", ");
-  $("#f_list").value = w?.list || (curList==="proberen"?"proberen":"gedronken");
+  $("#f_list").value = w?.list || (curList==="proberen"||curList==="kelder"?curList:"gedronken");
+  $("#f_aantal").value = w?.aantal || 1; showAantal();
+  fromCellar = w?.fromCellar || null;
   $("#f_datum").value = w?.mijn?.datum ?? new Date().toISOString().slice(0,10);
   $("#f_waar").value = w?.mijn?.waar || "";
   $("#f_prijs").value = w?.mijn?.prijs || "";
@@ -480,6 +761,9 @@ function openForm(w){
   $("#formSheet").classList.add("open"); $("#formSheet").scrollTop=0;
 }
 $("#addBtn").onclick = () => openForm(null);
+let fromCellar=null;
+function showAantal(){ $("#aantalRow").style.display = $("#f_list").value==="kelder" ? "" : "none"; }
+$("#f_list").onchange = showAantal;
 
 /* ---------- foto's ---------- */
 const MAXF = 4;
@@ -589,26 +873,27 @@ Antwoord met ALLEEN JSON:
 "sden":"Welke categorie van de SDEN 3-lijst is dit, of welke examenwijn lijkt er het meest op?",
 "quiz":[{"vraag":"","antwoord":""},{"vraag":"","antwoord":""},{"vraag":"","antwoord":""}],
 "locatie":{"lat":0,"lon":0,"plaats":"echte plaatsnaam: het dorp van de producent, anders de bekendste plaats van de appellatie"},
-"jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best"}}
-Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken). Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen oogstjaren die al achter ons liggen (tot en met ${new Date().getFullYear()-1}), nooit toekomstige jaren. Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".
+"jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best","drinkVan":0,"drinkTot":0}}
+Regels: Nederlands. Verzin geen producentspecifieke details die je niet zeker weet; zeg dan "typisch voor…". Locatie: het wijnhuis als je dat weet, anders het midden van de appellatie of regio. De quiz toetst begrip (druif, streek, klimaat, wijnmaken). Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen oogstjaren die al achter ons liggen (tot en met ${new Date().getFullYear()-1}), nooit toekomstige jaren. Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend". drinkVan en drinkTot zijn de jaartallen van het drinkvenster van deze fles (0 als je het niet weet).
 Context: ${SDEN3}`;
 }
 
 function promptVintage(w){
   return `Je bent een wijndocent voor een Nederlandse cursist. Geef jaargang-informatie over deze wijn:
 naam: ${w.naam}\nproducent: ${w.producent}\njaar: ${w.jaar}\nland: ${w.land}\nregio: ${w.regio}\nappellatie: ${w.appellatie}\ntype: ${w.type}
-Antwoord met ALLEEN JSON: {"jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best"}}
-Regels: Nederlands. Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen oogstjaren die al achter ons liggen (tot en met ${new Date().getFullYear()-1}), nooit toekomstige jaren. Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend".`;
+Antwoord met ALLEEN JSON: {"jaargang":{"ditJaar":"1-2 zinnen: hoe was het oogstjaar van deze wijn in deze streek (weer, kwaliteit); leeg als er geen jaar is","oordeel":"top|goed|wisselend|zwak|onbekend","goed":[{"jaar":"2019","waarom":"korte reden"}],"drinken":"drinkvenster: wanneer is deze wijn op zijn best","drinkVan":0,"drinkTot":0}}
+Regels: Nederlands. Jaargangen: noem bij "goed" 3-5 recente jaren die algemeen als sterk bekend staan voor deze streek of appellatie (nieuwste eerst). Alleen oogstjaren die al achter ons liggen (tot en met ${new Date().getFullYear()-1}), nooit toekomstige jaren. Alleen jaren waar je zeker van bent; bij twijfel weglaten en oordeel "onbekend". drinkVan en drinkTot zijn de jaartallen van het drinkvenster van deze fles (0 als je het niet weet).`;
 }
 const okYear = y => { const n=+String(y||"").trim(); return /^\d{4}$/.test(String(y||"").trim()) && n>=1900 && n<new Date().getFullYear(); };
 const cleanVintage = j => { const v=j?.jaargang||j||{}; const goed=(v.goed||[]).filter(x=>okYear(x?.jaar)).slice(0,6).map(x=>({jaar:String(x.jaar),waarom:x.waarom||""}));
-  return (v.ditJaar||goed.length||v.drinken) ? {ditJaar:v.ditJaar||"", oordeel:["top","goed","wisselend","zwak"].includes(v.oordeel)?v.oordeel:"", goed, drinken:v.drinken||""} : null; };
+  const yr=x=>{ const n=+x; return n>=1950&&n<=2100?n:0; };
+  return (v.ditJaar||goed.length||v.drinken) ? {ditJaar:v.ditJaar||"", oordeel:["top","goed","wisselend","zwak"].includes(v.oordeel)?v.oordeel:"", goed, drinken:v.drinken||"", drinkVan:yr(v.drinkVan), drinkTot:yr(v.drinkTot)} : null; };
 const vPending=new Set();
 async function startVintage(w){
-  if(vPending.has(w.id)) return; vPending.add(w.id); showDetail(w,true);
+  if(vPending.has(w.id)) return; vPending.add(w.id); if(current?.id===w.id) showDetail(w,true); else render();
   try{ const v=cleanVintage(await gemini(promptVintage(w),[],45000)); const saved=await dbGet(w.id);
-    if(saved?.info){ saved.info.jaargang=v||{leeg:1}; await dbPut(saved); await reload(); } }
-  finally{ vPending.delete(w.id); const x=wines.find(z=>z.id===w.id); if(current?.id===w.id&&x) showDetail(x,true); }
+    if(saved?.info){ saved.info.jaargang=v||{leeg:1}; await dbPut(saved); await reload(); } else if(saved){ saved.info={jaargang:v||{leeg:1}}; await dbPut(saved); await reload(); } }
+  finally{ vPending.delete(w.id); const x=wines.find(z=>z.id===w.id); if(current?.id===w.id&&x) showDetail(x,true); else render(); }
 }
 const OORDEEL={top:"🌟 topjaar",goed:"👍 goed jaar",wisselend:"〰️ wisselend jaar",zwak:"👎 zwak jaar"};
 function vintageHTML(w){
@@ -712,11 +997,13 @@ $("#saveBtn").onclick = async () => {
   if (!$("#f_naam").value.trim() && !photos.length) { status("#status","Voeg een foto of naam toe.",true); return; }
   const w = {
     id: draftId, list:$("#f_list").value, ...formFields(),
+    ...($("#f_list").value==="kelder" ? {aantal: Math.max(1, parseInt($("#f_aantal").value)||1)} : {}),
     photos:[...photos], info: learn || editing?.info || null,
     mijn:{ datum:$("#f_datum").value, waar:$("#f_waar").value.trim(), prijs:$("#f_prijs").value.trim(), score:rating, notitie:$("#f_notitie").value.trim() },
     createdAt: editing?.createdAt || Date.now(), updatedAt: Date.now()
   };
   try { await dbPut(w); } catch(e){ status("#status","Opslaan mislukt: "+esc(e?.message||e),true); return; }
+  if (fromCellar && w.list==="gedronken") { try { const k=await dbGet(fromCellar); if(k&&k.list==="kelder"){ k.aantal=Math.max(0,aantalOf(k)-1); if(k.aantal>0) await dbPut(k); else await dbDel(k.id); } } catch(e){} fromCellar=null; }
   $("#formSheet").classList.remove("open");
   await reload(); setTab(w.list); showDetail(wines.find(x=>x.id===w.id)||w);
 };
@@ -747,11 +1034,13 @@ function showDetail(w, keep){
       </div>
       <div class="chips">${[...new Set([w.type,w.land,w.regio,w.appellatie].filter(Boolean))].map(x=>`<span class="chip">${esc(x)}</span>`).join("")}
         ${(w.druiven||[]).map(d=>`<span class="chip">🍇 ${esc(d)}</span>`).join("")}</div>
-      <div class="sec"><h3>Jouw ervaring</h3>
+      ${w.list==="kelder"?kelDetailHTML(w):""}
+      ${w.list!=="gedronken"&&!m.score?matchDetailHTML(w):""}
+      ${w.list==="kelder"&&!m.score&&!m.notitie?"":`<div class="sec"><h3>Jouw ervaring</h3>
         ${m.score?`<div class="stars" style="font-size:1.2rem">${stars(m.score)}</div>`:""}
         <p class="note">${esc([m.datum?new Date(m.datum).toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}):"",m.waar,m.prijs?("€ "+m.prijs.replace(/^€\s*/,"")):""].filter(Boolean).join(" · "))}</p>
         ${m.notitie?`<p>${esc(m.notitie).replace(/\n/g,"<br>")}</p>`:`<p class="note">Nog geen proefnotitie.</p>`}
-      </div>
+      </div>`}
       ${i ? `
       ${i.quiz?.length?`<div class="sec"><h3>🧠 Test jezelf eerst</h3>
         <p class="note">Probeer deze vragen te beantwoorden voordat je de info hieronder leest.</p>
@@ -775,7 +1064,7 @@ function showDetail(w, keep){
         </div>
       </div>` : `<div class="sec">${busyInfo?`<p><span class="spin"></span>Leerinfo wordt opgehaald… dit verschijnt vanzelf.</p>`:`<p class="note">Nog geen leerinfo.</p><button class="btn p" id="refreshInfo" ${getKey()?"":"disabled"}>📚 Haal leerinfo op</button>`}</div>`}
       <div class="row" style="margin-top:18px">
-        ${w.list==="proberen"?`<button class="btn p" id="moveBtn">✔️ Gedronken!</button>`:""}
+        ${w.list==="proberen"?`<button class="btn p" id="moveBtn">✔️ Gedronken!</button><button class="btn" id="toCellar">🍾 Gekocht</button>`:""}
         <button class="btn" id="shareBtn">📤 Delen</button>
         <button class="btn danger" id="delBtn">Verwijderen</button>
       </div>
@@ -785,6 +1074,7 @@ function showDetail(w, keep){
   const rf=$("#refreshInfo"); if(rf) rf.onclick=()=>{ startInfo(w.id, w).catch(e=>{ const s=document.createElement("div"); s.className="status show err"; s.innerHTML=gemErr(e); rf.after(s); }); showDetail(w,true); };
   const vb=$("#vintBtn"); if(vb) vb.onclick=()=>startVintage(w).catch(e=>{ const s=document.createElement("div"); s.className="status show err"; s.innerHTML=gemErr(e); ($("#vintBtn")||$("#detail")).after(s); });
   $("#delBtn").onclick=()=>$("#confirm").classList.add("open");
+  bindKelDetail(w);
   $("#shareBtn").onclick=()=>shareWine(w);
   const mv=$("#moveBtn"); if(mv) mv.onclick=()=>{ sheet.classList.remove("open"); openForm({...w, list:"gedronken", mijn:{...(w.mijn||{}), datum:new Date().toISOString().slice(0,10)}}); };
   sheet.classList.add("open"); sheet.scrollTop = keep ? y : 0;

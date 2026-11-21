@@ -349,6 +349,8 @@
         <button class="btn" id="expBtn">⬇️ Back-up maken</button>
         <div class="pick btn">⬆️ Terugzetten<input type="file" accept=".json,application/json" id="impIn"></div>
       </div>
+      <label style="display:flex;gap:10px;align-items:center;color:var(--ink);font-size:.9rem;font-weight:500;margin-top:10px"><input type="checkbox" id="b_key" style="width:auto"> Neem mijn Gemini-sleutel en instellingen mee</label>
+      <p class="note">Handig voor een andere telefoon: zet de back-up daar terug en je hoeft de sleutel niet opnieuw in te voeren. Deel het bestand dan niet met anderen.</p>
       <div class="status" id="b_status"></div>
     </div>
     <p class="note" style="text-align:center;margin-top:16px">Versie 5.1 · kaart © OpenStreetMap-bijdragers</p>
@@ -1263,7 +1265,8 @@ $("#s_test").onclick=async()=>{ saveSettings(); if(!getKey()) return status("#s_
 $("#expBtn").onclick=async()=>{
   status("#b_status",'<span class="spin"></span>Back-up maken…');
   const out=[]; for (const w of wines) out.push({...w, photos: await Promise.all((w.photos||[]).map(async b=>({type:b.type, data: await blobToB64(b)})))});
-  const blob=new Blob([JSON.stringify({app:"wijnboek",versie:2,datum:new Date().toISOString(),wijnen:out})],{type:"application/json"});
+  const inst=$("#b_key").checked?{gemKey:getKey(),gemModel:LS.get("gemModel")||"",deco:LS.get("deco","1"),sommChat:LS.get("sommChat")||""}:null;
+  const blob=new Blob([JSON.stringify({app:"wijnboek",versie:2,datum:new Date().toISOString(),wijnen:out,...(inst?{instellingen:inst}:{})})],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`wijnboek-backup-${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   status("#b_status",`✅ Back-up van ${out.length} wijnen gedownload. Bewaar hem bijvoorbeeld in Google Drive.`);
@@ -1277,7 +1280,8 @@ $("#impIn").onchange=async e=>{
       w.photos = (w.photos||(w.photo?[w.photo]:[])).filter(p=>p?.data).map(b64ToBlob); delete w.photo;
       await dbPut(w);
     }
-    await reload(); status("#b_status",`✅ ${j.wijnen.length} wijnen teruggezet.`);
+    const I=j.instellingen; if(I&&typeof I==="object"){ if(I.gemKey) LS.set("gemKey",I.gemKey); if(I.gemModel) LS.set("gemModel",I.gemModel); if(I.deco) LS.set("deco",I.deco); if(I.sommChat&&!LS.get("sommChat")) LS.set("sommChat",I.sommChat); try{checkKey();updateBtns();}catch(_){}; $("#s_key").value=getKey(); }
+    await reload(); status("#b_status",`✅ ${j.wijnen.length} wijnen teruggezet${I?.gemKey?", met je Gemini-sleutel":""}.`);
   } catch(err){ status("#b_status","Dit is geen geldige back-up.",true); }
 };
 </script>

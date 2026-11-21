@@ -223,7 +223,7 @@
 </div></div>
 <div class="statrow" id="statrow"></div>
 <div class="wrap">
-  <div class="banner" id="keyBanner" style="margin-top:14px">Stel eerst je gratis Gemini-sleutel in om wijnen automatisch te laten herkennen.<br><button class="btn p" id="keyBannerBtn">Instellen</button></div>
+  <div class="banner" id="keyBanner" style="margin-top:14px">Stel je gratis Gemini-sleutel in om wijnen automatisch te laten herkennen. Dat duurt zo'n 2 minuten.<br><div class="row" style="margin-top:8px"><button class="btn p" id="keyBannerBtn">Stap voor stap instellen</button><button class="btn ghost" id="keySkip">Zonder AI verder</button></div></div>
   <div id="listView">
     <div id="kelTop"></div>
     <div class="search"><input id="q" type="search" placeholder="Zoek op naam, land, druif…"></div>
@@ -318,6 +318,25 @@
     <div class="row" style="margin-top:22px"><button class="btn p" id="pfSave">Opslaan</button></div>
     <div class="status" id="pfStatus"></div>
     <p class="note">Tik aan wat je proeft; alles is optioneel. Schalen volgens de WSET-proefmethode niveau 3; aroma's volgens het aromawiel van Lotte Wijn. Na het opslaan maakt de app er een lopende proefnotitie van.</p>
+  </div>
+</div>
+
+<!-- Sleutel instellen, stap voor stap -->
+<div class="sheet" id="keySheet">
+  <div class="top"><h2>Gemini-sleutel instellen</h2><button class="icon" data-close="keySheet">×</button></div>
+  <div class="wrap" style="padding-bottom:60px">
+    <p class="note" style="margin-top:12px">Met een gratis sleutel van Google herkent de app etiketten, haalt hij leerinfo op en werken de sommelier en de proefnotitie. Je hebt alleen een Google-account nodig (bijvoorbeeld je Gmail). Zonder sleutel kun je wijnen en proefformulieren gewoon zelf invullen.</p>
+    <div class="sec"><h3>1 · Open Google AI Studio</h3>
+      <p class="note">Log in met je Google-account. Kom je een welkomstscherm of voorwaarden tegen, accepteer die dan.</p>
+      <a class="btn p" style="display:block;text-decoration:none" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Open aistudio.google.com/apikey ↗</a></div>
+    <div class="sec"><h3>2 · Maak een sleutel en kopieer hem</h3>
+      <p class="note">Tik op <b>Create API key</b> (API-sleutel maken). Vraagt Google om een project, kies dan het voorgestelde project of <b>Create API key in new project</b>. Tik daarna op het kopieer-icoon naast de sleutel. Hij begint meestal met <b>AIza</b> of <b>AQ.</b> Kom daarna terug naar deze app.</p></div>
+    <div class="sec"><h3>3 · Plak en test</h3>
+      <div class="row"><button class="btn p" id="k_paste">📋 Plak uit klembord</button></div>
+      <label>Of plak hem zelf hier</label><input id="k_key" placeholder="AIza… of AQ.…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row" style="margin-top:10px"><button class="btn" id="k_test">Opslaan en testen</button></div>
+      <div class="status" id="k_status"></div></div>
+    <p class="note">De sleutel blijft alleen op deze telefoon. Gebruik je eigen sleutel en deel hem niet: alles wat ermee gebeurt, telt mee in jouw gratis tegoed. Gaat het mis? Bij ⚙️ Instellingen kun je de sleutel altijd aanpassen.</p>
   </div>
 </div>
 
@@ -823,7 +842,7 @@ $("#camIn").onchange=onPhoto; $("#galIn").onchange=onPhoto;
 const getKey = () => LS.get("gemKey").trim();
 const DEFAULT_MODEL = "gemini-flash-lite-latest";
 const getModel = () => LS.get("gemModel").trim() || DEFAULT_MODEL;
-function checkKey(){ $("#keyBanner").classList.toggle("show", !getKey()); }
+function checkKey(){ $("#keyBanner").classList.toggle("show", !getKey() && LS.get("keySkip")!=="1"); }
 function updateBtns(){
   const k=!!getKey();
   $("#recogBtn").disabled = !(photos.length && k);
@@ -1252,7 +1271,16 @@ function toast(t){ const d=document.createElement("div"); d.textContent=t; d.sty
 
 /* ---------- instellingen ---------- */
 function openSettings(){ $("#s_key").value=getKey(); $("#s_model").value=LS.get("gemModel")||DEFAULT_MODEL; $("#s_deco").checked=LS.get("deco","1")==="1"; status("#s_status",""); status("#b_status",""); $("#setSheet").classList.add("open"); }
-$("#setBtn").onclick=openSettings; $("#keyBannerBtn").onclick=openSettings;
+$("#setBtn").onclick=openSettings;
+function openKeySheet(){ $("#k_key").value=getKey(); status("#k_status",""); const sh=$("#keySheet"); sh.classList.add("open"); sh.scrollTop=0; }
+$("#keyBannerBtn").onclick=openKeySheet;
+$("#keySkip").onclick=()=>{ LS.set("keySkip","1"); checkKey(); toast("Prima. Je kunt de sleutel later instellen via ⚙️."); };
+$("#k_paste").onclick=async()=>{ try{ const t=(await navigator.clipboard.readText()||"").trim(); if(!t) return status("#k_status","Het klembord is leeg. Kopieer eerst de sleutel in AI Studio.",true); $("#k_key").value=t; $("#k_test").click(); }catch(e){ status("#k_status","Plakken lukte niet automatisch. Houd je vinger in het vak hieronder en kies Plakken.",true); } };
+$("#k_test").onclick=async()=>{ const v=$("#k_key").value.trim().replace(/\s+/g,""); if(!v) return status("#k_status","Plak eerst de sleutel.",true);
+  if(!/^(AIza|AQ\.)/.test(v)&&v.length<30) return status("#k_status","Dit lijkt geen sleutel. Kopieer de hele sleutel uit AI Studio.",true);
+  LS.set("gemKey",v); checkKey(); updateBtns(); status("#k_status",'<span class="spin"></span>Testen…');
+  try{ await gemini('Antwoord met JSON: {"ok":true}',[],60000); status("#k_status","✅ Het werkt! Je kunt nu etiketten laten herkennen."); setTimeout(()=>$("#keySheet").classList.remove("open"),1800); }
+  catch(e){ status("#k_status", gemErr(e), true); } };
 $("#s_deco").onchange=e=>LS.set("deco", e.target.checked?"1":"0");
 function saveSettings(){ const old=getModel(); LS.set("gemKey",$("#s_key").value.trim()); LS.set("gemModel",$("#s_model").value.trim()||DEFAULT_MODEL); if(getModel()!==old){ noThinkCfg=false; LS.set("noThinkCfg","0"); } checkKey(); updateBtns(); }
 $("#s_save").onclick=()=>{ saveSettings(); status("#s_status","✅ Opgeslagen."); };
